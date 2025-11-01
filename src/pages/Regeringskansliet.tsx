@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { FileText, Newspaper, Scale, Database, Book, MessageSquare, Globe, Folder } from "lucide-react";
+import { FileText, Newspaper, Scale, Globe, Folder } from "lucide-react";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import DataFetchButton from "@/components/DataFetchButton";
-import ProgressTracker from "@/components/ProgressTracker";
-import FileQueueManager from "@/components/FileQueueManager";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { AppHeader } from "@/components/navigation/AppHeader";
+import { DynamicBreadcrumbs } from "@/components/navigation/DynamicBreadcrumbs";
 
 const Regeringskansliet = () => {
   const documentCategories = [
@@ -67,47 +69,61 @@ const Regeringskansliet = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="w-full bg-primary py-1" />
-      
-      <div className="container mx-auto px-4 py-12 md:py-20 max-w-7xl">
-        <header className="text-center mb-16">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex-1" />
-            <div className="flex-1 flex justify-center">
-              <div>
-                <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4">
-                  Regeringskansliet
-                </h1>
-                <div className="w-20 h-1 bg-secondary mx-auto mb-6"></div>
-              </div>
-            </div>
-            <div className="flex-1 flex justify-end">
-              <DataFetchButton type="regeringskansliet" />
-            </div>
-          </div>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Utforska data från regeringen.se via g0v.se öppna data
+      <AppHeader />
+
+      <div className="container mx-auto px-4 py-12 max-w-7xl">
+        <DynamicBreadcrumbs />
+
+        <header className="mb-12">
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4">
+            Regeringskansliet
+          </h1>
+          <div className="w-20 h-1 bg-secondary mb-6"></div>
+          <p className="text-lg text-muted-foreground max-w-2xl">
+            Utforska 30+ dokumenttyper från regeringen.se via g0v.se öppna data
           </p>
         </header>
 
-        <ProgressTracker source="regeringskansliet" />
-        <FileQueueManager />
+        {/* Tabs Navigation - Reduced information overload */}
+        <Tabs defaultValue="legal" className="w-full">
+          <TabsList className="mb-8 grid w-full grid-cols-2 md:grid-cols-4 h-auto gap-2">
+            {documentCategories.map((category) => (
+              <TabsTrigger
+                key={category.title}
+                value={category.title.toLowerCase().replace(/\s+/g, '-')}
+                className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                <category.icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{category.title}</span>
+                <Badge variant="secondary" className="ml-auto text-xs">
+                  {category.items.length}
+                </Badge>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        {/* Document Categories */}
-        <div className="space-y-12">
           {documentCategories.map((category) => (
-            <div key={category.title}>
-              <div className="flex items-center gap-3 mb-6">
-                <category.icon className={`h-6 w-6 ${category.variant === 'info' ? 'text-info' : category.variant === 'success' ? 'text-success' : category.variant === 'warning' ? 'text-warning' : 'text-error'}`} />
-                <h2 className="text-2xl font-bold">{category.title}</h2>
+            <TabsContent
+              key={category.title}
+              value={category.title.toLowerCase().replace(/\s+/g, '-')}
+              className="mt-6"
+            >
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold flex items-center gap-3">
+                  <category.icon className="h-6 w-6 text-primary" />
+                  {category.title}
+                  <Badge variant="outline">{category.items.length} typer</Badge>
+                </h2>
               </div>
-              
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {category.items.map((item) => (
                   <Link key={item.href} to={item.href}>
-                    <Card className="h-full transition-all hover:shadow-lg hover:scale-[1.02] cursor-pointer border-2 hover:border-primary/20">
+                    <Card className="group h-full card-elevated hover:scale-[1.02] cursor-pointer border-2 hover:border-primary/30 transition-all duration-300">
                       <CardHeader>
-                        <CardTitle className="text-lg">{item.title}</CardTitle>
+                        <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                          {item.title}
+                        </CardTitle>
                         <CardDescription className="text-sm">
                           {item.description}
                         </CardDescription>
@@ -116,18 +132,9 @@ const Regeringskansliet = () => {
                   </Link>
                 ))}
               </div>
-            </div>
+            </TabsContent>
           ))}
-        </div>
-
-        <div className="text-center mt-12">
-          <Link 
-            to="/" 
-            className="text-primary hover:underline inline-flex items-center gap-2"
-          >
-            ← Tillbaka till startsidan
-          </Link>
-        </div>
+        </Tabs>
       </div>
     </div>
   );
