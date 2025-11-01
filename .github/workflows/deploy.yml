@@ -28,7 +28,9 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm install
+          npm ls gh-pages || npm install gh-pages --save-dev
 
       - name: Build for production
         run: npm run build
