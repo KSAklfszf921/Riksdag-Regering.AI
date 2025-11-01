@@ -49,7 +49,10 @@ const Index = () => {
         <div className="flex justify-end gap-2 mb-4">
           {/* Favorites button - show for logged in users */}
           {user && <Link to="/favorites">
-              
+              <Button variant="outline" size="sm">
+                <Heart className="h-4 w-4 mr-2" />
+                Favoriter
+              </Button>
             </Link>}
           
           {/* Admin button - show for logged in users */}
