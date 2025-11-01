@@ -65,6 +65,7 @@ const PageLoader = () => (
 
 const App = () => (
   <BrowserRouter
+    basename={import.meta.env.PROD ? "/Riksdag-Regering.AI" : "/"}
     future={{
       v7_startTransition: true,
       v7_relativeSplatPath: true,
