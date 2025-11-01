@@ -54,26 +54,52 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- GitHub Pages SPA Redirect Handler -->
+    <!-- Enhanced with security validation and error handling -->
     <script type="text/javascript">
-      // Single Page Apps for GitHub Pages
-      // https://github.com/rafgraph/spa-github-pages
-      (function(l) {
-        if (l.search[1] === '/' ) {
-          var decoded = l.search.slice(1).split('&').map(function(s) { 
-            return s.replace(/~and~/g, '&')
-          }).join('?');
-          window.history.replaceState(null, null,
-              l.pathname.slice(0, -1) + decoded + l.hash
-          );
+      (function() {
+        var basePath = '/Riksdag-Regering.AI';
+        
+        /**
+         * Validates redirect path to prevent XSS attacks
+         * Only allows safe characters and limits length
+         */
+        function isValidPath(str) {
+          return str && 
+                 typeof str === 'string' &&
+                 /^[a-zA-Z0-9\/\-_?#&=åäöÅÄÖ]*$/.test(str) && 
+                 str.length < 2000;
         }
         
-        // Also check sessionStorage for redirect path
-        var redirectPath = sessionStorage.getItem('redirectPath');
-        if (redirectPath) {
-          sessionStorage.removeItem('redirectPath');
-          window.history.replaceState(null, null, redirectPath);
+        try {
+          var redirectPath = sessionStorage.getItem('redirectPath');
+          
+          if (redirectPath && isValidPath(redirectPath)) {
+            // Clean up immediately
+            sessionStorage.removeItem('redirectPath');
+            
+            // Prepend basename and redirect
+            var fullPath = basePath + redirectPath;
+            window.history.replaceState(null, null, fullPath);
+          }
+        } catch (e) {
+          // SessionStorage might be disabled or other error
+          console.error('SPA redirect failed:', e);
+          
+          // Fallback: stay on current page (React Router will handle it)
         }
-      }(window.location))
+        
+        // Cleanup timeout - remove stale redirect after 5 seconds
+        setTimeout(function() {
+          try {
+            if (sessionStorage.getItem('redirectPath')) {
+              console.warn('Stale redirect path detected, cleaning up...');
+              sessionStorage.removeItem('redirectPath');
+            }
+          } catch (e) {
+            // Ignore cleanup errors
+          }
+        }, 5000);
+      })();
     </script>
   </head>
 
