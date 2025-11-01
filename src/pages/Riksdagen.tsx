@@ -157,31 +157,25 @@ const Riksdagen = () => {
           </div>
         ) : null}
 
-        <div className="grid md:grid-cols-2 gap-6 mb-12">
+        {/* Primary sections - Enhanced visual hierarchy */}
+        <div className="grid md:grid-cols-2 gap-8 mb-20">
           {sections.map((section) => (
             <Link key={section.href} to={section.href}>
-              <Card className="h-full transition-all hover:shadow-lg hover:scale-[1.02] cursor-pointer border-2 hover:border-primary/20">
-                <CardHeader>
-                  <div className="flex items-center gap-3 mb-2">
-                    <section.icon className={`h-8 w-8 ${section.variant === 'info' ? 'text-info' : section.variant === 'success' ? 'text-success' : section.variant === 'warning' ? 'text-warning' : 'text-error'}`} />
-                    <CardTitle className="text-2xl">{section.title}</CardTitle>
+              <Card className="group h-full card-elevated hover:scale-[1.02] cursor-pointer border-2 hover:border-primary/30 transition-all duration-300">
+                <CardHeader className="p-8">
+                  <div className="flex items-center gap-4 mb-4">
+                    <section.icon className="h-8 w-8 text-primary/60 transition-transform group-hover:scale-110 group-hover:text-primary" />
+                    <CardTitle className="text-2xl group-hover:text-primary transition-colors">
+                      {section.title}
+                    </CardTitle>
                   </div>
-                  <CardDescription className="text-base">
+                  <CardDescription className="text-base leading-relaxed">
                     {section.description}
                   </CardDescription>
                 </CardHeader>
               </Card>
             </Link>
           ))}
-        </div>
-
-        <div className="text-center">
-          <Link 
-            to="/" 
-            className="text-primary hover:underline inline-flex items-center gap-2"
-          >
-            ← Tillbaka till startsidan
-          </Link>
         </div>
       </div>
     </div>
