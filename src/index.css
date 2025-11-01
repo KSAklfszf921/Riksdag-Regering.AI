@@ -27,7 +27,7 @@ All colors MUST be HSL.
     --secondary-foreground: 210 20% 15%;
 
     --muted: 210 15% 92%;
-    --muted-foreground: 210 15% 50%;
+    --muted-foreground: 210 15% 40%;
 
     --accent: 210 20% 90%;
     --accent-foreground: 210 20% 15%;
@@ -78,7 +78,7 @@ All colors MUST be HSL.
     --secondary-foreground: 210 20% 15%;
 
     --muted: 210 20% 16%;
-    --muted-foreground: 210 15% 65%;
+    --muted-foreground: 210 15% 70%;
 
     --accent: 210 20% 20%;
     --accent-foreground: 30 15% 95%;
@@ -86,7 +86,7 @@ All colors MUST be HSL.
     --destructive: 0 40% 45%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 210 20% 20%;
+    --border: 210 20% 25%;
     --input: 210 20% 20%;
     --ring: 210 50% 60%;
 
@@ -113,10 +113,79 @@ All colors MUST be HSL.
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border transition-colors duration-200;
   }
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Disable transitions on theme toggle to prevent flash */
+  .theme-transition-disabled * {
+    transition: none !important;
+  }
+}
+
+/* Typography Utilities */
+@layer utilities {
+  .hero-title {
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-none font-serif;
+  }
+
+  .section-title {
+    @apply text-2xl md:text-3xl font-semibold tracking-tight font-serif;
+  }
+
+  .body-large {
+    @apply text-base md:text-lg leading-relaxed;
+  }
+
+  .body-fluid {
+    font-size: clamp(0.875rem, 2vw, 1rem);
+    line-height: 1.6;
+  }
+
+  /* Gradient Utilities */
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.05) 0%, hsl(var(--secondary) / 0.05) 100%);
+  }
+
+  .gradient-primary-hover {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.08) 0%, hsl(var(--secondary) / 0.08) 100%);
+  }
+
+  /* Card Utilities */
+  .card-elevated {
+    box-shadow:
+      0 1px 3px hsl(var(--foreground) / 0.05),
+      0 10px 20px hsl(var(--foreground) / 0.02);
+  }
+
+  .card-elevated:hover {
+    box-shadow:
+      0 4px 6px hsl(var(--primary) / 0.1),
+      0 20px 40px hsl(var(--primary) / 0.05);
+  }
+
+  /* Skeleton Shimmer Animation */
+  @keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+  }
+
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted-foreground) / 0.1) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* Touch-friendly elements */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
   }
 }

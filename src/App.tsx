@@ -1,35 +1,66 @@
 import { Suspense } from 'react';
-import { BrowserRouter, Routes, Route, useRoutes } from 'react-router-dom';
+import { BrowserRouter, useRoutes, useLocation } from 'react-router-dom';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ErrorBoundary } from '@/components/error/ErrorBoundary';
 import { Skeleton } from '@/components/ui/skeleton';
 import { routes } from '@/config/routes';
+import { motion, AnimatePresence } from 'framer-motion';
 
 /**
  * Loading fallback component shown while lazy routes are loading
- * Provides better UX with skeleton screens instead of blank page
+ * Enhanced with shimmer effect for better UX
  */
 const PageLoader = () => (
   <div className="min-h-screen bg-background p-8">
     <div className="container mx-auto max-w-7xl space-y-6">
-      <Skeleton className="h-12 w-64" />
-      <Skeleton className="h-6 w-96" />
+      <Skeleton className="h-12 w-64 skeleton-shimmer" />
+      <Skeleton className="h-6 w-96 skeleton-shimmer" />
       <div className="space-y-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full skeleton-shimmer" />
+        <Skeleton className="h-32 w-full skeleton-shimmer" />
+        <Skeleton className="h-32 w-full skeleton-shimmer" />
       </div>
     </div>
   </div>
 );
 
 /**
- * Routes component using the centralized routes config
- * Replaces 50+ lines of individual Route declarations
+ * Page transition variants for Framer Motion
+ * Smooth fade in + slide up effect
+ */
+const pageVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 }
+};
+
+const pageTransition = {
+  duration: 0.3,
+  ease: 'easeInOut'
+};
+
+/**
+ * Routes component with page transitions
+ * Uses AnimatePresence for smooth transitions between routes
  */
 const AppRoutes = () => {
   const element = useRoutes(routes);
-  return element;
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        variants={pageVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        transition={pageTransition}
+      >
+        {element}
+      </motion.div>
+    </AnimatePresence>
+  );
 };
 
 /**
@@ -41,6 +72,8 @@ const AppRoutes = () => {
  * - ✅ Dynamic Routing: GenericDocumentPage replaces 26+ components
  * - ✅ React Query DevTools: Available in development mode
  * - ✅ Code Reduction: ~80% fewer lines in App.tsx
+ * - ✅ Page Transitions: Smooth fade + slide animations with Framer Motion
+ * - ✅ Enhanced Loading: Shimmer effect on skeleton screens
  */
 const App = () => (
   <ErrorBoundary>

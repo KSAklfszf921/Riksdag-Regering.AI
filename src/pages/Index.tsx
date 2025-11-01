@@ -45,63 +45,82 @@ const Index = () => {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8 md:py-16 max-w-6xl">
-        <div className="flex justify-end gap-2 mb-4">
+      <div className="container mx-auto px-4 py-12 md:py-20 max-w-6xl">
+        <div className="flex justify-end gap-3 mb-8">
           {/* Favorites button - show for logged in users */}
           {user && <Link to="/favorites">
-              <Button variant="outline" size="sm">
+              <Button variant="outline-hover" size="sm" className="touch-target">
                 <Heart className="h-4 w-4 mr-2" />
                 Favoriter
               </Button>
             </Link>}
-          
+
           {/* Admin button - show for logged in users */}
           {user && <Link to="/admin">
-              <Button variant={isAdmin ? "default" : "outline"} size="sm">
+              <Button
+                variant={isAdmin ? "gradient" : "outline-hover"}
+                size="sm"
+                className="touch-target"
+              >
                 <Shield className="h-4 w-4 mr-2" />
                 {isAdmin ? "Admin Panel" : "Admin Setup"}
               </Button>
             </Link>}
-          
+
           {/* Auth buttons */}
-          {user ? <div className="flex items-center gap-2">
+          {user ? <div className="flex items-center gap-3">
               <span className="text-sm text-muted-foreground hidden sm:inline">
                 {user.email}
               </span>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
+              <Button variant="outline" size="sm" onClick={handleLogout} className="touch-target">
                 <LogOut className="h-4 w-4 mr-2" />
                 Logga ut
               </Button>
             </div> : <Link to="/login">
-              <Button size="sm">
+              <Button size="sm" className="touch-target">
                 <LogIn className="h-4 w-4 mr-2" />
                 Logga in för Admin
               </Button>
             </Link>}
         </div>
 
-        <header className="text-center mb-12 md:mb-16">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold text-foreground mb-3 tracking-tight">
-            Riksdag & Regering
-          </h1>
-          <div className="w-16 h-0.5 bg-primary/20 mx-auto mb-4"></div>
-          <p className="text-muted-foreground text-sm md:text-base max-w-2xl mx-auto">
-            Utforska svenska politiska institutioner med AI-baserade informationstjänster
-          </p>
+        <header className="text-center mb-16 md:mb-20">
+          <div className="max-w-4xl mx-auto space-y-6">
+            <h1 className="hero-title text-foreground">
+              Riksdag & Regering
+            </h1>
+            <div className="w-20 h-1 bg-gradient-to-r from-primary/40 via-primary to-primary/40 mx-auto rounded-full"></div>
+            <p className="body-large text-muted-foreground max-w-2xl mx-auto">
+              Utforska svenska politiska institutioner med AI-baserade informationstjänster
+            </p>
+          </div>
         </header>
 
-        <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto mb-16">
-          <InstitutionCard title="Riksdagen" description="Utforska Sveriges riksdag med AI. Få insikter om propositioner, debatter och beslutsprocesser." href="/riksdagen" image={riksdagenLogo} />
+        <div className="grid md:grid-cols-2 gap-8 md:gap-10 lg:gap-12 max-w-6xl mx-auto mb-20">
+          <InstitutionCard
+            title="Riksdagen"
+            description="Utforska Sveriges riksdag med AI. Få insikter om propositioner, debatter och beslutsprocesser."
+            href="/riksdagen"
+            image={riksdagenLogo}
+            accentColor="primary"
+          />
 
-          <InstitutionCard title="Regeringskansliet" description="Upptäck regeringens arbete och organisation. AI-driven information om departement och policy." href="/regeringskansliet" image={regeringskanslientLogo} />
+          <InstitutionCard
+            title="Regeringskansliet"
+            description="Upptäck regeringens arbete och organisation. AI-driven information om departement och policy."
+            href="/regeringskansliet"
+            image={regeringskanslientLogo}
+            accentColor="secondary"
+          />
         </div>
 
-        <footer className="border-t border-border/40 bg-muted/20 -mx-4 px-4 py-8 mt-16">
-          
-          <div className="mt-8 pt-6 border-t border-border/40 text-center">
-            <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} Svenska AI-tjänster. Alla rättigheter förbehållna.
-            </p>
+        <footer className="border-t border-border/40 bg-gradient-to-b from-muted/10 to-muted/30 -mx-4 px-4 py-12 mt-24">
+          <div className="max-w-prose mx-auto">
+            <div className="pt-8 border-t border-border/40 text-center">
+              <p className="text-xs text-muted-foreground">
+                © {new Date().getFullYear()} Svenska AI-tjänster. Alla rättigheter förbehållna.
+              </p>
+            </div>
           </div>
         </footer>
       </div>

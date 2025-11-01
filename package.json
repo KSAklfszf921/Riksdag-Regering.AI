@@ -58,6 +58,7 @@
     "dompurify": "^3.3.0",
     "embla-carousel-react": "^8.6.0",
     "fast-xml-parser": "^4.3.2",
+    "framer-motion": "^12.23.24",
     "input-otp": "^1.4.2",
     "lodash.debounce": "^4.0.8",
     "lodash.throttle": "^4.1.1",
