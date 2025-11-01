@@ -6,6 +6,7 @@ import { createHtmlPlugin } from "vite-plugin-html";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  base: mode === 'production' ? '/Riksdag-Regering.AI/' : '/',
   server: {
     host: "::",
     port: 8080,
@@ -61,4 +62,4 @@ export default defineConfig(({ mode }) => ({
     // Chunk size warning limit
     chunkSizeWarningLimit: 1000,
   },
-}));
+}))
