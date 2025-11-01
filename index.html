@@ -10,6 +10,20 @@
     <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
+    <!-- Content Security Policy (CSP) -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval';
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: https: blob:;
+      connect-src 'self' https://*.supabase.co https://data.riksdagen.se https://www.regeringen.se;
+      frame-ancestors 'none';
+      base-uri 'self';
+      form-action 'self';
+      upgrade-insecure-requests;
+    " />
+
     <!-- Primary Meta Tags -->
     <title>Svenska AI-tjänster | Riksdagen &amp; Regeringskansliet</title>
     <meta name="title" content="Svenska AI-tjänster | Riksdagen &amp; Regeringskansliet" />
