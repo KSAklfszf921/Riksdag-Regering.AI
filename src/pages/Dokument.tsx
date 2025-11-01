@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -10,14 +10,24 @@ import { sv } from "date-fns/locale";
 import EmptyState from "@/components/EmptyState";
 
 const Dokument = () => {
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get('search');
+
   const { data: dokument, isLoading } = useQuery({
-    queryKey: ['dokument'],
+    queryKey: ['dokument', searchQuery],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('riksdagen_dokument')
         .select('*')
         .order('datum', { ascending: false });
-      
+
+      // Apply search filter if search query exists
+      if (searchQuery) {
+        query = query.or(`titel.ilike.%${searchQuery}%,subtitel.ilike.%${searchQuery}%,doktyp.ilike.%${searchQuery}%`);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
       return data;
     },
@@ -37,7 +47,16 @@ const Dokument = () => {
           </h1>
           <div className="w-20 h-1 bg-secondary mb-6"></div>
           <p className="text-muted-foreground">
-            Senaste dokumenten från riksdagen
+            {searchQuery ? (
+              <>
+                Sökresultat för: <span className="font-semibold text-foreground">{searchQuery}</span>
+                {dokument && dokument.length > 0 && (
+                  <> ({dokument.length} {dokument.length === 1 ? 'dokument' : 'dokument'})</>
+                )}
+              </>
+            ) : (
+              'Senaste dokumenten från riksdagen'
+            )}
           </p>
         </header>
 
