@@ -59,23 +59,43 @@ jobs:
           SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
           DEPLOY_PATH: /home/u210698164/domains/riksdagen.ai/public_html
         run: |
+          # Setup SSH
           mkdir -p ~/.ssh
           echo "Host *" > ~/.ssh/config
           echo "  StrictHostKeyChecking no" >> ~/.ssh/config
           echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
+          echo "  ConnectTimeout 30" >> ~/.ssh/config
+          echo "  ServerAliveInterval 60" >> ~/.ssh/config
           chmod 600 ~/.ssh/config
 
-          # Install sshpass for password-based SSH
-          apt-get update && apt-get install -y sshpass
+          # Install sshpass with sudo
+          sudo apt-get update && sudo apt-get install -y sshpass
 
-          # Sync files to riksdagen.ai
-          sshpass -p "$SSH_PASSWORD" rsync -avz \
-            --delete \
-            -e "ssh -p $SSH_PORT" \
-            dist/ \
-            "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/"
+          # Deploy with retry logic
+          MAX_ATTEMPTS=3
+          ATTEMPT=1
 
-          echo "✅ Deployed to riksdagen.ai"
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Deployment attempt $ATTEMPT/$MAX_ATTEMPTS..."
+
+            if sshpass -p "$SSH_PASSWORD" rsync -avz \
+              --delete \
+              -e "ssh -p $SSH_PORT -o ConnectTimeout=30 -o ServerAliveInterval=60" \
+              dist/ \
+              "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/"; then
+              echo "✅ Deployed to riksdagen.ai"
+              exit 0
+            else
+              ATTEMPT=$((ATTEMPT + 1))
+              if [ $ATTEMPT -le $MAX_ATTEMPTS ]; then
+                echo "⏳ Retry in 5 seconds..."
+                sleep 5
+              fi
+            fi
+          done
+
+          echo "❌ Deployment failed after $MAX_ATTEMPTS attempts"
+          exit 1
 
   deploy-regeringskansliet:
     name: Deploy to regeringskansliet.ai
@@ -97,20 +117,40 @@ jobs:
           SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
           DEPLOY_PATH: /home/u210698164/domains/regeringskansliet.ai/public_html
         run: |
+          # Setup SSH
           mkdir -p ~/.ssh
           echo "Host *" > ~/.ssh/config
           echo "  StrictHostKeyChecking no" >> ~/.ssh/config
           echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
+          echo "  ConnectTimeout 30" >> ~/.ssh/config
+          echo "  ServerAliveInterval 60" >> ~/.ssh/config
           chmod 600 ~/.ssh/config
 
-          # Install sshpass for password-based SSH
-          apt-get update && apt-get install -y sshpass
+          # Install sshpass with sudo
+          sudo apt-get update && sudo apt-get install -y sshpass
 
-          # Sync files to regeringskansliet.ai
-          sshpass -p "$SSH_PASSWORD" rsync -avz \
-            --delete \
-            -e "ssh -p $SSH_PORT" \
-            dist/ \
-            "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/"
+          # Deploy with retry logic
+          MAX_ATTEMPTS=3
+          ATTEMPT=1
 
-          echo "✅ Deployed to regeringskansliet.ai"
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Deployment attempt $ATTEMPT/$MAX_ATTEMPTS..."
+
+            if sshpass -p "$SSH_PASSWORD" rsync -avz \
+              --delete \
+              -e "ssh -p $SSH_PORT -o ConnectTimeout=30 -o ServerAliveInterval=60" \
+              dist/ \
+              "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/"; then
+              echo "✅ Deployed to regeringskansliet.ai"
+              exit 0
+            else
+              ATTEMPT=$((ATTEMPT + 1))
+              if [ $ATTEMPT -le $MAX_ATTEMPTS ]; then
+                echo "⏳ Retry in 5 seconds..."
+                sleep 5
+              fi
+            fi
+          done
+
+          echo "❌ Deployment failed after $MAX_ATTEMPTS attempts"
+          exit 1
