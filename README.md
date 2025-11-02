@@ -62,12 +62,28 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/4734fa32-ab04-435b-8cf6-d46801e10e63) and click on Share -> Publish.
+### GitHub Pages
 
-## Can I connect a custom domain to my Lovable project?
+To deploy to GitHub Pages (for example via the `npm run deploy` script) you **must** build the project with the GitHub Pages base path. This repository now includes a dedicated build command that sets the correct configuration automatically:
 
-Yes, you can!
+```sh
+npm run build:github-pages
+# or, when using the deploy script
+npm run deploy
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+The generated `dist/` directory will use the `/Riksdag-Regering.AI/` base path so that the site loads correctly when served from `https://<username>.github.io/Riksdag-Regering.AI/` or any GitHub Pages custom domain mapping to the project.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### Custom domains / other hosts
+
+For custom domains (e.g. `www.regeringskansliet.ai`, `www.riksdagen.ai`) or other hosting platforms, run the standard production build which keeps the site rooted at `/`:
+
+```sh
+npm run build
+```
+
+The resulting build folder can be uploaded to any static hosting provider. If you are using a provider-specific build target, such as Hostinger, continue to use the dedicated command:
+
+```sh
+npm run build:hostinger
+```
