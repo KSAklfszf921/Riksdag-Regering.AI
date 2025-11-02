@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:github-pages": "VITE_DEPLOY_TARGET=github-pages vite build",
     "build:hostinger": "VITE_DEPLOY_TARGET=hostinger npm run build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
@@ -18,7 +19,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "type-check": "tsc --noEmit",
-    "predeploy": "npm run build",
+    "predeploy": "npm run build:github-pages",
     "deploy": "gh-pages -d dist",
     "deploy:force": "gh-pages -d dist -f"
   },
