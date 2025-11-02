@@ -1,0 +1,10 @@
+{
+  "build": {
+    "command": "npm run build",
+    "outputDir": "dist",
+    "nodeVersion": "20"
+  },
+  "routes": {
+    "spa": true
+  }
+}
