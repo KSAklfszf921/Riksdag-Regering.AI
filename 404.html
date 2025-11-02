@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/Riksdag-Regering.AI/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Laddar... | Svenska AI-tjänster</title>
+    
+    <!-- Single Page Apps for GitHub Pages -->
+    <!-- https://github.com/rafgraph/spa-github-pages -->
+    <!-- Enhanced with security validation -->
+    <script type="text/javascript">
+      (function(l) {
+        var basePath = '/Riksdag-Regering.AI/';
+        
+        /**
+         * Validates path to prevent XSS attacks
+         * Only allows: alphanumeric, /, -, _, ?, #, &, =
+         * Max length 2000 chars to prevent DoS
+         */
+        function isValidPath(str) {
+          return /^[a-zA-Z0-9\/\-_?#&=åäöÅÄÖ]*$/.test(str) && str.length < 2000;
+        }
+        
+        // Extract path after base (handles both /base and /base/)
+        var path = l.pathname.replace(new RegExp('^' + basePath.replace(/\/$/, '') + '/?'), '/');
+        var fullPath = path + l.search + l.hash;
+        
+        // Store path if valid and not root
+        if (path && path !== '/' && isValidPath(fullPath)) {
+          try {
+            sessionStorage.setItem('redirectPath', fullPath);
+          } catch (e) {
+            // SessionStorage might be disabled or full
+            console.error('Failed to store redirect path:', e);
+          }
+        }
+        
+        // Always redirect to base index
+        l.replace(basePath);
+      }(window.location));
+    </script>
+  </head>
+  <body>
+    <div style="
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    ">
+      <div style="text-align: center;">
+        <h1 style="font-size: 3rem; margin-bottom: 1rem;">⚡</h1>
+        <p style="font-size: 1.25rem; opacity: 0.9;">Laddar sidan...</p>
+      </div>
+    </div>
+  </body>
+</html>
