@@ -1,5 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.78.0'
 import { XMLParser } from 'npm:fast-xml-parser@4.3.2'
+import {
+  ExtendedLedamotData,
+  ExtendedDokumentData,
+  ExtendedAnforandeData,
+  ExtendedVoteringData,
+  APIFilterParams,
+  buildFilteredAPIUrl
+} from './extended-types.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,59 +25,8 @@ function sanitizeStoragePath(path: string): string {
     .replace(/^\/|\/$/g, '');  // Remove leading/trailing slashes
 }
 
-interface DokumentData {
-  dok_id: string;
-  rm?: string;
-  beteckning?: string;
-  doktyp?: string;
-  typ?: string;
-  subtyp?: string;
-  organ?: string;
-  nummer?: string;
-  datum?: string;
-  systemdatum?: string;
-  titel?: string;
-  subtitel?: string;
-  status?: string;
-  dokument_url_text?: string;
-  dokument_url_html?: string;
-  local_pdf_url?: string;
-  local_html_url?: string;
-}
-
-interface LedamotData {
-  intressent_id: string;
-  fornamn?: string;
-  efternamn?: string;
-  tilltalsnamn?: string;
-  parti?: string;
-  valkrets?: string;
-  status?: string;
-  bild_url?: string;
-  local_bild_url?: string;
-}
-
-interface AnforandeData {
-  anforande_id: string;
-  intressent_id?: string;
-  dok_id?: string;
-  debattnamn?: string;
-  debattsekund?: number;
-  anftext?: string;
-  anfdatum?: string;
-  avsnittsrubrik?: string;
-  parti?: string;
-  talare?: string;
-}
-
-interface VoteringData {
-  votering_id: string;
-  rm?: string;
-  beteckning?: string;
-  punkt?: number;
-  titel?: string;
-  votering_datum?: string;
-}
+// Nu använder vi de utökade typerna från extended-types.ts
+// ExtendedLedamotData, ExtendedDokumentData, ExtendedAnforandeData, ExtendedVoteringData
 
 // Lägg till fil i nedladdningskö istället för att ladda ner direkt
 async function enqueueFileDownload(
@@ -202,8 +159,8 @@ Deno.serve(async (req) => {
     const paginate = requestBody.paginate ?? true;
     const maxPages = requestBody.maxPages ?? null;
     
-    // Filtreringsparametrar från Riksdagens API
-    const filters = {
+    // Filtreringsparametrar från Riksdagens API - använd utökade parametrar nu
+    const filters: APIFilterParams = {
       rm: requestBody.rm || '',              // Riksmöte (t.ex. "2024/25")
       parti: requestBody.parti || '',         // Parti (t.ex. "S", "M", "SD")
       iid: requestBody.iid || '',             // Intressent ID (ledamots-ID)
@@ -212,6 +169,20 @@ Deno.serve(async (req) => {
       ts: requestBody.ts || '',               // Tidsperiod
       doktyp: requestBody.doktyp || '',       // Dokumenttyp
       sz: requestBody.sz || '500',            // Antal resultat per sida (default 500, max för Riksdagens API)
+      // Nya utökade parametrar från extended-types.ts
+      organ: requestBody.organ || '',         // T.ex. 'KU', 'FiU'
+      bet: requestBody.bet || '',             // Beteckning
+      debattnamn: requestBody.debattnamn || '', // För anföranden
+      talare: requestBody.talare || '',       // För anföranden
+      utskottet: requestBody.utskottet || '', // Utskott
+      kat: requestBody.kat || '',             // Kategori
+      kommittemotion: requestBody.kommittemotion || '',
+      mottagare: requestBody.mottagare || '', // Departement
+      aktivitet: requestBody.aktivitet || '', // Aktivitet
+      datum: requestBody.datum || '',         // Specifikt datum
+      searchterm: requestBody.searchterm || '', // Fritext-sökning
+      sort: requestBody.sort || '',           // Sortering
+      sortorder: requestBody.sortorder || '', // asc/desc
     };
 
     console.log(`Hämtar ${dataType} data från Riksdagens API (paginering: ${paginate}, original: ${rawDataType})...`);
@@ -220,47 +191,24 @@ Deno.serve(async (req) => {
     let apiUrl = '';
     let tableName = '';
 
-    // Bygg API URL med filtreringsparametrar
-    const buildApiUrl = (baseUrl: string, format: string = 'json') => {
-      const params = new URLSearchParams({
-        utformat: format,
-        sz: filters.sz,
-        p: '1'
-      });
-      
-      // Lägg till filtreringsparametrar om de finns
-      if (filters.rm) params.append('rm', filters.rm);
-      if (filters.parti) params.append('parti', filters.parti);
-      if (filters.iid) params.append('iid', filters.iid);
-      if (filters.from) params.append('from', filters.from);
-      if (filters.tom) params.append('tom', filters.tom);
-      if (filters.ts) params.append('ts', filters.ts);
-      if (filters.doktyp) params.append('doktyp', filters.doktyp);
-      
-      return `${baseUrl}?${params.toString()}`;
-    };
-
     if (dataType === 'dokument') {
-      apiUrl = buildApiUrl('https://data.riksdagen.se/dokumentlista/', 'json');
-      // Lägg till dokumentspecifika parametrar
-      const url = new URL(apiUrl);
-      url.searchParams.append('sort', 'datum');
-      url.searchParams.append('sortorder', 'desc');
-      apiUrl = url.toString();
+      // Använd buildFilteredAPIUrl från extended-types.ts
+      apiUrl = buildFilteredAPIUrl('https://data.riksdagen.se/dokumentlista/', filters, 'json');
       tableName = 'riksdagen_dokument';
     } else if (dataType === 'ledamoter') {
+      // Ledamöter har sitt eget format
       apiUrl = 'https://data.riksdagen.se/personlista/?utformat=json&rdlstatus=samtliga';
+      // Lägg till parti-filter om det finns
+      if (filters.parti) {
+        apiUrl += `&parti=${filters.parti}`;
+      }
       tableName = 'riksdagen_ledamoter';
     } else if (dataType === 'anforanden') {
       // Anföranden använder XML-format
-      apiUrl = buildApiUrl('https://data.riksdagen.se/anforandelista/', 'xml');
+      apiUrl = buildFilteredAPIUrl('https://data.riksdagen.se/anforandelista/', filters, 'xml');
       tableName = 'riksdagen_anforanden';
     } else if (dataType === 'voteringar') {
-      apiUrl = buildApiUrl('https://data.riksdagen.se/voteringlista/', 'json');
-      const url = new URL(apiUrl);
-      url.searchParams.append('sort', 'datum');
-      url.searchParams.append('sortorder', 'desc');
-      apiUrl = url.toString();
+      apiUrl = buildFilteredAPIUrl('https://data.riksdagen.se/voteringlista/', filters, 'json');
       tableName = 'riksdagen_voteringar';
     } else {
       return new Response(
@@ -425,7 +373,8 @@ Deno.serve(async (req) => {
 
         for (const dok of dokument) {
           try {
-            const dokumentData: DokumentData = {
+            // Använd ExtendedDokumentData med alla nya fält
+            const dokumentData: ExtendedDokumentData = {
               dok_id: dok.dok_id || dok.id,
               rm: dok.rm,
               beteckning: dok.beteckning,
@@ -436,11 +385,25 @@ Deno.serve(async (req) => {
               nummer: dok.nummer,
               datum: dok.datum,
               systemdatum: dok.systemdatum,
+              publicerad: dok.publicerad,
               titel: dok.titel,
               subtitel: dok.subtitel,
               status: dok.status,
               dokument_url_text: dok.dokument_url_text,
               dokument_url_html: dok.dokument_url_html,
+              dokument_url_xml: dok.dokument_url_xml,
+              traff_url: dok.traff_url,
+              summary: dok.summary,
+              html: dok.html,
+              klockslag: dok.klockslag,
+              relateradHandling: dok.relateradHandling,
+              hangar_id: dok.hangar_id,
+              debattdag: dok.debattdag,
+              debattgrupptitel: dok.debattgrupptitel,
+              beslutad: dok.beslutad,
+              beredningsdag: dok.beredningsdag,
+              expeditionsdag: dok.expeditionsdag,
+              motionstid: dok.motionstid,
             };
 
             // Lägg till PDF i nedladdningskö istället för att ladda ner direkt
@@ -491,7 +454,8 @@ Deno.serve(async (req) => {
 
         for (const person of personer) {
           try {
-            const ledamotData: LedamotData = {
+            // Använd ExtendedLedamotData med alla nya fält
+            const ledamotData: ExtendedLedamotData = {
               intressent_id: person.intressent_id,
               fornamn: person.fornamn,
               efternamn: person.efternamn,
@@ -500,6 +464,17 @@ Deno.serve(async (req) => {
               valkrets: person.valkrets,
               status: person.status,
               bild_url: person.bild_url_192 || person.bild_url_80,
+              iort: person.iort,
+              kon: person.kon,
+              fodelsear: person.fodelsear,
+              webbadress: person.webbadress,
+              bloggadress: person.bloggadress,
+              email: person.email,
+              telefonnummer: person.telefonnummer,
+              facebook: person.facebook,
+              twitter: person.twitter,
+              instagram: person.instagram,
+              riksdagsnamn: person.riksdagsnamn,
             };
 
             // Lägg till bild i nedladdningskö istället för att ladda ner direkt
@@ -547,7 +522,7 @@ Deno.serve(async (req) => {
         for (const anf of anforanden) {
           try {
             // Map XML fields correctly according to Riksdagen API structure
-            const anforandeData: AnforandeData = {
+            const anforandeData: ExtendedAnforandeData = {
               anforande_id: anf.anforande_id,
               intressent_id: anf.intressent_id,
               dok_id: anf.dok_id,
@@ -558,6 +533,14 @@ Deno.serve(async (req) => {
               avsnittsrubrik: anf.avsnittsrubrik,
               parti: anf.parti,
               talare: anf.talare,
+              video_url: anf.video_url,
+              audio_url: anf.audio_url,
+              anforande_nummer: anf.anforande_nummer,
+              replik: anf.replik,
+              systemtid: anf.systemtid,
+              kammaraktivitet: anf.kammaraktivitet,
+              protokollstatus: anf.protokollstatus,
+              talartid: anf.talartid ? parseInt(anf.talartid) : undefined,
             };
 
             const { error } = await supabaseClient
@@ -596,13 +579,21 @@ Deno.serve(async (req) => {
 
         for (const vot of voteringar) {
           try {
-            const voteringData: VoteringData = {
+            const voteringData: ExtendedVoteringData = {
               votering_id: vot.votering_id,
               rm: vot.rm,
               beteckning: vot.beteckning,
               punkt: vot.punkt ? parseInt(vot.punkt) : undefined,
               titel: vot.titel,
               votering_datum: vot.datum,
+              voteringstyp: vot.voteringstyp,
+              voteringlista: vot.voteringlista,
+              gruppering: vot.gruppering,
+              dokument_url: vot.dokument_url,
+              antal_ja: vot.antal_ja ? parseInt(vot.antal_ja) : undefined,
+              antal_nej: vot.antal_nej ? parseInt(vot.antal_nej) : undefined,
+              antal_frånvarande: vot.antal_frånvarande ? parseInt(vot.antal_frånvarande) : undefined,
+              antal_avstående: vot.antal_avstående ? parseInt(vot.antal_avstående) : undefined,
             };
 
             const { error } = await supabaseClient
