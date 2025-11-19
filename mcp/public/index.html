@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Riksdag & Regering MCP Server</title>
-    <meta name="description" content="Model Context Protocol server för att söka, analysera och jämföra data från Sveriges Riksdag och Regeringskansliet">
+    <meta name="description" content="Model Context Protocol server för Sveriges Riksdag och Regeringskansliet - Sök, analysera och jämför svensk politisk data">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
 
     <style>
@@ -19,16 +19,16 @@
             --secondary-color: #FECC00;
             --success-color: #28a745;
             --danger-color: #dc3545;
-            --text-color: #333;
+            --text-color: #24292f;
             --bg-color: #ffffff;
-            --card-bg: #f8f9fa;
-            --border-color: #dee2e6;
+            --card-bg: #f6f8fa;
+            --border-color: #d0d7de;
             --code-bg: #f6f8fa;
-            --header-height: 60px;
+            --link-color: #0969da;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
             line-height: 1.6;
             color: var(--text-color);
             background-color: var(--bg-color);
@@ -42,7 +42,7 @@
             border-bottom: 1px solid var(--border-color);
             padding: 1rem 2rem;
             z-index: 1000;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 0 0 rgba(0,0,0,0.04);
         }
 
         .header-content {
@@ -51,6 +51,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         .logo {
@@ -63,33 +65,43 @@
 
         .logo-icon {
             font-size: 2rem;
+            line-height: 1;
         }
 
         .logo-text h1 {
             font-size: 1.25rem;
             font-weight: 600;
+            line-height: 1.2;
         }
 
         .logo-text p {
             font-size: 0.875rem;
-            color: #666;
+            color: #57606a;
         }
 
-        nav {
+        .header-actions {
             display: flex;
-            gap: 2rem;
             align-items: center;
+            gap: 1rem;
         }
 
-        nav a {
-            color: var(--text-color);
+        .github-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--text-color);
+            color: white;
             text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
             font-weight: 500;
-            transition: color 0.2s;
+            transition: transform 0.1s, box-shadow 0.1s;
         }
 
-        nav a:hover {
-            color: var(--primary-color);
+        .github-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
         .status-badge {
@@ -98,7 +110,8 @@
             gap: 0.5rem;
             padding: 0.5rem 1rem;
             background: var(--card-bg);
-            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
             font-size: 0.875rem;
             font-weight: 500;
         }
@@ -121,140 +134,83 @@
             animation: none;
         }
 
-        /* Mobile Menu */
-        .mobile-menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-        }
-
         /* Main Content */
         main {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 3rem 2rem;
         }
 
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 2rem;
-            border-bottom: 2px solid var(--border-color);
+        .loading {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #57606a;
         }
 
-        .tab {
-            padding: 0.75rem 1.5rem;
-            background: none;
-            border: none;
-            border-bottom: 2px solid transparent;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 500;
-            color: #666;
-            transition: all 0.2s;
-            margin-bottom: -2px;
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
         }
 
-        .tab:hover {
-            color: var(--primary-color);
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
-        .tab.active {
-            color: var(--primary-color);
-            border-bottom-color: var(--primary-color);
-        }
-
-        /* Content */
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .content-card {
-            background: var(--card-bg);
-            border-radius: 8px;
-            padding: 2rem;
-            margin-bottom: 1rem;
-        }
-
-        /* Markdown Styles */
+        /* Markdown Content Styles */
         .markdown-content {
             line-height: 1.8;
+            color: var(--text-color);
         }
 
         .markdown-content h1,
         .markdown-content h2,
-        .markdown-content h3 {
-            margin-top: 2rem;
-            margin-bottom: 1rem;
+        .markdown-content h3,
+        .markdown-content h4,
+        .markdown-content h5,
+        .markdown-content h6 {
+            margin-top: 24px;
+            margin-bottom: 16px;
             font-weight: 600;
+            line-height: 1.25;
         }
 
         .markdown-content h1 {
-            font-size: 2rem;
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 0.5rem;
+            font-size: 2em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3em;
         }
 
         .markdown-content h2 {
-            font-size: 1.5rem;
-            color: var(--primary-color);
+            font-size: 1.5em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3em;
         }
 
         .markdown-content h3 {
-            font-size: 1.25rem;
+            font-size: 1.25em;
         }
 
         .markdown-content p {
-            margin-bottom: 1rem;
+            margin-bottom: 16px;
         }
 
         .markdown-content ul,
         .markdown-content ol {
-            margin-left: 2rem;
-            margin-bottom: 1rem;
+            margin-left: 2em;
+            margin-bottom: 16px;
         }
 
         .markdown-content li {
-            margin-bottom: 0.5rem;
-        }
-
-        .markdown-content code {
-            background: var(--code-bg);
-            padding: 0.2rem 0.4rem;
-            border-radius: 3px;
-            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-            font-size: 0.9em;
-        }
-
-        .markdown-content pre {
-            background: var(--code-bg);
-            padding: 1rem;
-            border-radius: 6px;
-            overflow-x: auto;
-            margin-bottom: 1rem;
-            position: relative;
-        }
-
-        .markdown-content pre code {
-            background: none;
-            padding: 0;
+            margin-bottom: 0.25em;
         }
 
         .markdown-content a {
-            color: var(--primary-color);
+            color: var(--link-color);
             text-decoration: none;
         }
 
@@ -262,17 +218,48 @@
             text-decoration: underline;
         }
 
+        .markdown-content code {
+            background: var(--code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+            font-size: 85%;
+        }
+
+        .markdown-content pre {
+            background: var(--code-bg);
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .markdown-content pre code {
+            background: none;
+            padding: 0;
+            border-radius: 0;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
         .markdown-content blockquote {
-            border-left: 4px solid var(--primary-color);
-            padding-left: 1rem;
-            margin: 1rem 0;
-            color: #666;
+            border-left: 4px solid var(--border-color);
+            padding-left: 1em;
+            margin: 16px 0;
+            color: #57606a;
+        }
+
+        .markdown-content img {
+            max-width: 100%;
+            height: auto;
         }
 
         .markdown-content table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 1rem;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
         }
 
         .markdown-content th,
@@ -287,53 +274,64 @@
             font-weight: 600;
         }
 
-        /* Copy Button */
-        .copy-button {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            padding: 0.25rem 0.75rem;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
+        .markdown-content hr {
+            height: 4px;
+            padding: 0;
+            margin: 24px 0;
+            background-color: var(--border-color);
+            border: 0;
+        }
+
+        .markdown-content details {
+            margin-bottom: 16px;
+        }
+
+        .markdown-content summary {
             cursor: pointer;
-            font-size: 0.875rem;
-            opacity: 0;
-            transition: opacity 0.2s;
+            font-weight: 600;
+            padding: 8px;
+            background: var(--card-bg);
+            border-radius: 6px;
+            margin-bottom: 8px;
         }
 
-        pre:hover .copy-button {
-            opacity: 1;
+        .markdown-content summary:hover {
+            background: var(--border-color);
         }
 
-        .copy-button:hover {
-            background: #005580;
+        /* Badge Images */
+        .markdown-content p img[src*="shields.io"],
+        .markdown-content p img[src*="badge"] {
+            display: inline-block;
+            margin: 0 4px 4px 0;
+            vertical-align: middle;
         }
 
-        .copy-button.copied {
-            background: var(--success-color);
-        }
-
-        /* Loading State */
-        .loading {
+        /* Footer */
+        footer {
             text-align: center;
-            padding: 3rem;
-            color: #666;
+            padding: 3rem 2rem;
+            border-top: 1px solid var(--border-color);
+            color: #57606a;
+            background: var(--card-bg);
+            margin-top: 4rem;
         }
 
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--border-color);
-            border-top-color: var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
+        footer a {
+            color: var(--link-color);
+            text-decoration: none;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
         }
 
         /* Error State */
@@ -342,72 +340,38 @@
             border: 1px solid #ffc107;
             border-radius: 6px;
             padding: 1rem;
-            margin: 1rem 0;
+            margin: 2rem 0;
             color: #856404;
         }
 
-        /* Footer */
-        footer {
-            text-align: center;
-            padding: 2rem;
-            border-top: 1px solid var(--border-color);
-            color: #666;
-            margin-top: 4rem;
-        }
-
-        footer a {
-            color: var(--primary-color);
-            text-decoration: none;
-        }
-
-        footer a:hover {
-            text-decoration: underline;
+        .error strong {
+            display: block;
+            margin-bottom: 0.5rem;
         }
 
         /* Responsive */
         @media (max-width: 768px) {
-            nav {
-                display: none;
-            }
-
-            .mobile-menu-toggle {
-                display: block;
-            }
-
-            nav.mobile-active {
-                display: flex;
-                position: fixed;
-                top: var(--header-height);
-                left: 0;
-                right: 0;
-                background: var(--bg-color);
+            .header-content {
                 flex-direction: column;
-                padding: 1rem;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                align-items: flex-start;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
             }
 
             main {
-                padding: 1rem;
+                padding: 2rem 1rem;
             }
 
-            .tabs {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-
-            .tab {
-                white-space: nowrap;
-            }
-        }
-
-        @media (max-width: 480px) {
             .logo-text p {
                 display: none;
             }
 
-            .status-badge {
-                font-size: 0.75rem;
-                padding: 0.375rem 0.75rem;
+            .footer-links {
+                flex-direction: column;
+                gap: 0.5rem;
             }
         }
     </style>
@@ -422,51 +386,26 @@
                     <p>Model Context Protocol Server</p>
                 </div>
             </a>
-            <nav id="nav">
-                <a href="https://github.com/KSAklfszf921/Riksdag-Regering.AI" target="_blank">GitHub</a>
-                <a href="/health" target="_blank">API Health</a>
+            <div class="header-actions">
                 <div class="status-badge" id="status-badge">
                     <span class="status-indicator"></span>
                     <span id="status-text">Kontrollerar...</span>
                 </div>
-            </nav>
-            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Toggle menu">☰</button>
+                <a href="https://github.com/KSAklfszf921/Riksdag-Regering.AI" target="_blank" class="github-link">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    GitHub
+                </a>
+            </div>
         </div>
     </header>
 
     <main>
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab('readme')">📖 README</button>
-            <button class="tab" onclick="switchTab('guide')">🚀 Anslutningsguide</button>
-            <button class="tab" onclick="switchTab('api')">📡 API Reference</button>
-            <button class="tab" onclick="switchTab('tools')">🛠️ Verktyg</button>
-        </div>
-
-        <div id="readme" class="tab-content active">
+        <div id="content">
             <div class="loading">
                 <div class="loading-spinner"></div>
                 <p>Laddar dokumentation...</p>
-            </div>
-        </div>
-
-        <div id="guide" class="tab-content">
-            <div class="loading">
-                <div class="loading-spinner"></div>
-                <p>Laddar anslutningsguide...</p>
-            </div>
-        </div>
-
-        <div id="api" class="tab-content">
-            <div class="loading">
-                <div class="loading-spinner"></div>
-                <p>Laddar API-dokumentation...</p>
-            </div>
-        </div>
-
-        <div id="tools" class="tab-content">
-            <div class="loading">
-                <div class="loading-spinner"></div>
-                <p>Laddar verktygslista...</p>
             </div>
         </div>
     </main>
@@ -474,23 +413,19 @@
     <footer>
         <p>
             <strong>Riksdag & Regering MCP Server</strong> v2.0.0<br>
-            Skapad med ❤️ för svensk demokrati<br>
-            <a href="https://github.com/KSAklfszf921/Riksdag-Regering.AI" target="_blank">GitHub Repository</a> |
-            <a href="https://github.com/KSAklfszf921/Riksdag-Regering.AI/issues" target="_blank">Rapportera Problem</a> |
-            <a href="/health" target="_blank">Server Status</a>
+            En öppen MCP-server för svensk demokratidata
         </p>
+        <div class="footer-links">
+            <a href="https://github.com/KSAklfszf921/Riksdag-Regering.AI" target="_blank">GitHub</a>
+            <a href="https://github.com/KSAklfszf921/Riksdag-Regering.AI/issues" target="_blank">Rapportera Problem</a>
+            <a href="/health" target="_blank">Server Health</a>
+            <a href="https://modelcontextprotocol.io/" target="_blank">MCP Protocol</a>
+        </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
-        const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/KSAklfszf921/Riksdag-Regering.AI/main';
-
-        const docs = {
-            readme: `${GITHUB_RAW_BASE}/mcp/README.md`,
-            guide: `${GITHUB_RAW_BASE}/REMOTE_MCP_GUIDE.md`,
-            api: `${GITHUB_RAW_BASE}/mcp/USAGE_GUIDE.md`,
-            tools: `${GITHUB_RAW_BASE}/mcp/README.md` // Tools section from README
-        };
+        const GITHUB_README_URL = 'https://raw.githubusercontent.com/KSAklfszf921/Riksdag-Regering.AI/main/README.md';
 
         // Check server status
         async function checkServerStatus() {
@@ -516,107 +451,50 @@
             }
         }
 
-        // Load markdown content
-        async function loadContent(tabId) {
-            const contentEl = document.getElementById(tabId);
+        // Load and render README
+        async function loadReadme() {
+            const contentEl = document.getElementById('content');
 
             // Check session storage cache
-            const cacheKey = `content_${tabId}`;
-            const cached = sessionStorage.getItem(cacheKey);
+            const cached = sessionStorage.getItem('readme_content');
             if (cached) {
                 const data = JSON.parse(cached);
-                if (Date.now() - data.timestamp < 5 * 60 * 1000) { // 5 min cache
-                    contentEl.innerHTML = `<div class="content-card markdown-content">${data.html}</div>`;
-                    addCopyButtons();
+                if (Date.now() - data.timestamp < 10 * 60 * 1000) { // 10 min cache
+                    contentEl.innerHTML = `<div class="markdown-content">${data.html}</div>`;
                     return;
                 }
             }
 
             try {
-                const response = await fetch(docs[tabId]);
-                if (!response.ok) throw new Error('Failed to load content');
+                const response = await fetch(GITHUB_README_URL);
+                if (!response.ok) throw new Error('Failed to load README');
 
                 const markdown = await response.text();
                 const html = marked.parse(markdown);
 
                 // Cache the result
-                sessionStorage.setItem(cacheKey, JSON.stringify({
+                sessionStorage.setItem('readme_content', JSON.stringify({
                     html,
                     timestamp: Date.now()
                 }));
 
-                contentEl.innerHTML = `<div class="content-card markdown-content">${html}</div>`;
-                addCopyButtons();
+                contentEl.innerHTML = `<div class="markdown-content">${html}</div>`;
             } catch (error) {
                 contentEl.innerHTML = `
                     <div class="error">
-                        <strong>⚠️ Kunde inte ladda innehåll</strong><br>
-                        ${error.message}
+                        <strong>⚠️ Kunde inte ladda README från GitHub</strong>
+                        <p>${error.message}</p>
+                        <p>Försök <a href="javascript:location.reload()">ladda om sidan</a> eller besök
+                        <a href="https://github.com/KSAklfszf921/Riksdag-Regering.AI" target="_blank">GitHub-repot direkt</a>.</p>
                     </div>
                 `;
             }
         }
 
-        // Switch tabs
-        function switchTab(tabId) {
-            // Update tab buttons
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // Update content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.getElementById(tabId).classList.add('active');
-
-            // Load content if not already loaded
-            const contentEl = document.getElementById(tabId);
-            if (contentEl.querySelector('.loading')) {
-                loadContent(tabId);
-            }
-        }
-
-        // Add copy buttons to code blocks
-        function addCopyButtons() {
-            document.querySelectorAll('pre').forEach(pre => {
-                const button = document.createElement('button');
-                button.className = 'copy-button';
-                button.textContent = 'Kopiera';
-                button.onclick = () => copyCode(button, pre);
-                pre.appendChild(button);
-            });
-        }
-
-        // Copy code to clipboard
-        async function copyCode(button, pre) {
-            const code = pre.querySelector('code')?.textContent || pre.textContent;
-            try {
-                await navigator.clipboard.writeText(code);
-                button.textContent = '✓ Kopierat!';
-                button.classList.add('copied');
-                setTimeout(() => {
-                    button.textContent = 'Kopiera';
-                    button.classList.remove('copied');
-                }, 2000);
-            } catch (error) {
-                button.textContent = '✗ Misslyckades';
-                setTimeout(() => {
-                    button.textContent = 'Kopiera';
-                }, 2000);
-            }
-        }
-
-        // Toggle mobile menu
-        function toggleMobileMenu() {
-            document.getElementById('nav').classList.toggle('mobile-active');
-        }
-
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             checkServerStatus();
-            loadContent('readme');
+            loadReadme();
 
             // Refresh status every 30 seconds
             setInterval(checkServerStatus, 30000);
