@@ -56,6 +56,9 @@ function createApp() {
   app.use(cors());
   app.use(express.json({ limit: '10mb' }));
 
+  // Serve static files from public directory
+  app.use(express.static('public'));
+
   // Rate limiting
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes

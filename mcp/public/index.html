@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riksdag & Regering MCP Server</title>
+    <meta name="description" content="Model Context Protocol server för att söka, analysera och jämföra data från Sveriges Riksdag och Regeringskansliet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #006AA7;
+            --secondary-color: #FECC00;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --text-color: #333;
+            --bg-color: #ffffff;
+            --card-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --code-bg: #f6f8fa;
+            --header-height: 60px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+        }
+
+        /* Header */
+        header {
+            position: sticky;
+            top: 0;
+            background: var(--bg-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-color);
+        }
+
+        .logo-icon {
+            font-size: 2rem;
+        }
+
+        .logo-text h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .logo-text p {
+            font-size: 0.875rem;
+            color: #666;
+        }
+
+        nav {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        nav a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        nav a:hover {
+            color: var(--primary-color);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--card-bg);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-badge.offline .status-indicator {
+            background: var(--danger-color);
+            animation: none;
+        }
+
+        /* Mobile Menu */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Main Content */
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.2s;
+            margin-bottom: -2px;
+        }
+
+        .tab:hover {
+            color: var(--primary-color);
+        }
+
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        /* Content */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .content-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Markdown Styles */
+        .markdown-content {
+            line-height: 1.8;
+        }
+
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3 {
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .markdown-content h1 {
+            font-size: 2rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .markdown-content h2 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .markdown-content h3 {
+            font-size: 1.25rem;
+        }
+
+        .markdown-content p {
+            margin-bottom: 1rem;
+        }
+
+        .markdown-content ul,
+        .markdown-content ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .markdown-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .markdown-content code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .markdown-content pre {
+            background: var(--code-bg);
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .markdown-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .markdown-content a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .markdown-content a:hover {
+            text-decoration: underline;
+        }
+
+        .markdown-content blockquote {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #666;
+        }
+
+        .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+
+        .markdown-content th,
+        .markdown-content td {
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .markdown-content th {
+            background: var(--code-bg);
+            font-weight: 600;
+        }
+
+        /* Copy Button */
+        .copy-button {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        pre:hover .copy-button {
+            opacity: 1;
+        }
+
+        .copy-button:hover {
+            background: #005580;
+        }
+
+        .copy-button.copied {
+            background: var(--success-color);
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error State */
+        .error {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: #856404;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            border-top: 1px solid var(--border-color);
+            color: #666;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav {
+                display: none;
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            nav.mobile-active {
+                display: flex;
+                position: fixed;
+                top: var(--header-height);
+                left: 0;
+                right: 0;
+                background: var(--bg-color);
+                flex-direction: column;
+                padding: 1rem;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            }
+
+            main {
+                padding: 1rem;
+            }
+
+            .tabs {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .tab {
+                white-space: nowrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo-text p {
+                display: none;
+            }
+
+            .status-badge {
+                font-size: 0.75rem;
+                padding: 0.375rem 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <a href="/" class="logo">
+                <span class="logo-icon">🏛️</span>
+                <div class="logo-text">
+                    <h1>Riksdag & Regering MCP</h1>
+                    <p>Model Context Protocol Server</p>
+                </div>
+            </a>
+            <nav id="nav">
+                <a href="https://github.com/KSAklfszf921/Riksdag-Regering.AI" target="_blank">GitHub</a>
+                <a href="/health" target="_blank">API Health</a>
+                <div class="status-badge" id="status-badge">
+                    <span class="status-indicator"></span>
+                    <span id="status-text">Kontrollerar...</span>
+                </div>
+            </nav>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Toggle menu">☰</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('readme')">📖 README</button>
+            <button class="tab" onclick="switchTab('guide')">🚀 Anslutningsguide</button>
+            <button class="tab" onclick="switchTab('api')">📡 API Reference</button>
+            <button class="tab" onclick="switchTab('tools')">🛠️ Verktyg</button>
+        </div>
+
+        <div id="readme" class="tab-content active">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Laddar dokumentation...</p>
+            </div>
+        </div>
+
+        <div id="guide" class="tab-content">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Laddar anslutningsguide...</p>
+            </div>
+        </div>
+
+        <div id="api" class="tab-content">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Laddar API-dokumentation...</p>
+            </div>
+        </div>
+
+        <div id="tools" class="tab-content">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Laddar verktygslista...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>
+            <strong>Riksdag & Regering MCP Server</strong> v2.0.0<br>
+            Skapad med ❤️ för svensk demokrati<br>
+            <a href="https://github.com/KSAklfszf921/Riksdag-Regering.AI" target="_blank">GitHub Repository</a> |
+            <a href="https://github.com/KSAklfszf921/Riksdag-Regering.AI/issues" target="_blank">Rapportera Problem</a> |
+            <a href="/health" target="_blank">Server Status</a>
+        </p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/KSAklfszf921/Riksdag-Regering.AI/main';
+
+        const docs = {
+            readme: `${GITHUB_RAW_BASE}/mcp/README.md`,
+            guide: `${GITHUB_RAW_BASE}/REMOTE_MCP_GUIDE.md`,
+            api: `${GITHUB_RAW_BASE}/mcp/USAGE_GUIDE.md`,
+            tools: `${GITHUB_RAW_BASE}/mcp/README.md` // Tools section from README
+        };
+
+        // Check server status
+        async function checkServerStatus() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+
+                const badge = document.getElementById('status-badge');
+                const statusText = document.getElementById('status-text');
+
+                if (data.status === 'ok') {
+                    badge.classList.remove('offline');
+                    statusText.textContent = 'Online';
+                } else {
+                    badge.classList.add('offline');
+                    statusText.textContent = 'Offline';
+                }
+            } catch (error) {
+                const badge = document.getElementById('status-badge');
+                const statusText = document.getElementById('status-text');
+                badge.classList.add('offline');
+                statusText.textContent = 'Offline';
+            }
+        }
+
+        // Load markdown content
+        async function loadContent(tabId) {
+            const contentEl = document.getElementById(tabId);
+
+            // Check session storage cache
+            const cacheKey = `content_${tabId}`;
+            const cached = sessionStorage.getItem(cacheKey);
+            if (cached) {
+                const data = JSON.parse(cached);
+                if (Date.now() - data.timestamp < 5 * 60 * 1000) { // 5 min cache
+                    contentEl.innerHTML = `<div class="content-card markdown-content">${data.html}</div>`;
+                    addCopyButtons();
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch(docs[tabId]);
+                if (!response.ok) throw new Error('Failed to load content');
+
+                const markdown = await response.text();
+                const html = marked.parse(markdown);
+
+                // Cache the result
+                sessionStorage.setItem(cacheKey, JSON.stringify({
+                    html,
+                    timestamp: Date.now()
+                }));
+
+                contentEl.innerHTML = `<div class="content-card markdown-content">${html}</div>`;
+                addCopyButtons();
+            } catch (error) {
+                contentEl.innerHTML = `
+                    <div class="error">
+                        <strong>⚠️ Kunde inte ladda innehåll</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Switch tabs
+        function switchTab(tabId) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+
+            // Load content if not already loaded
+            const contentEl = document.getElementById(tabId);
+            if (contentEl.querySelector('.loading')) {
+                loadContent(tabId);
+            }
+        }
+
+        // Add copy buttons to code blocks
+        function addCopyButtons() {
+            document.querySelectorAll('pre').forEach(pre => {
+                const button = document.createElement('button');
+                button.className = 'copy-button';
+                button.textContent = 'Kopiera';
+                button.onclick = () => copyCode(button, pre);
+                pre.appendChild(button);
+            });
+        }
+
+        // Copy code to clipboard
+        async function copyCode(button, pre) {
+            const code = pre.querySelector('code')?.textContent || pre.textContent;
+            try {
+                await navigator.clipboard.writeText(code);
+                button.textContent = '✓ Kopierat!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Kopiera';
+                    button.classList.remove('copied');
+                }, 2000);
+            } catch (error) {
+                button.textContent = '✗ Misslyckades';
+                setTimeout(() => {
+                    button.textContent = 'Kopiera';
+                }, 2000);
+            }
+        }
+
+        // Toggle mobile menu
+        function toggleMobileMenu() {
+            document.getElementById('nav').classList.toggle('mobile-active');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkServerStatus();
+            loadContent('readme');
+
+            // Refresh status every 30 seconds
+            setInterval(checkServerStatus, 30000);
+        });
+    </script>
+</body>
+</html>
