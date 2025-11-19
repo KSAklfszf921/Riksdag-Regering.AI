@@ -1,58 +1,238 @@
-# Welcome to your Lovable project
+# Riksdag-Regering.AI
 
-## Project info
+En omfattande plattform för att utforska, analysera och visualisera data från Sveriges Riksdag och Regeringskansliet.
 
-**URL**: https://lovable.dev/projects/4734fa32-ab04-435b-8cf6-d46801e10e63
+## 📋 Översikt
 
-## How can I edit this code?
+Detta projekt består av två huvudkomponenter:
 
-There are several ways of editing your application.
+1. **Web Application** - En interaktiv webbplattform för att utforska svensk parlamentarisk data
+2. **MCP Server** - En Model Context Protocol-server för AI-assistenter att hämta och analysera riksdag/regeringsdata
 
-**Use Lovable**
+## 🚀 Snabbstart
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/4734fa32-ab04-435b-8cf6-d46801e10e63) and start prompting.
+### Web Application
 
-Changes made via Lovable will be committed automatically to this repo.
+```bash
+# Installera dependencies
+npm install
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Starta utvecklingsserver
 npm run dev
+
+# Bygg för produktion
+npm run build
 ```
 
-**Edit a file directly in GitHub**
+### MCP Server
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Se [mcp/README.md](mcp/README.md) för detaljerad dokumentation om MCP-servern.
 
-**Use GitHub Codespaces**
+```bash
+# Navigera till mcp-katalogen
+cd mcp
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Installera dependencies
+npm install
 
-## What technologies are used for this project?
+# Bygg servern
+npm run build
 
-This project is built with:
+# Starta servern
+npm start
+```
+
+## 🎯 Funktioner
+
+### Web Application
+
+- **Sökfunktionalitet**: Sök efter ledamöter, dokument, anföranden och voteringar
+- **Datavisualisering**: Interaktiva diagram och grafer
+- **Dokumenthantering**: Visa och analysera riksdagsdokument
+- **Responsive design**: Fungerar på alla enheter
+
+### MCP Server
+
+- **27 verktyg** för sök, analys, jämförelse och aggregering
+- **5 resurser** för direktåtkomst till strukturerad data
+- **Säker datavalidering** med endast tillåtna riksdag/regering-tabeller
+- **Dual transport** - Både STDIO och HTTP-server
+- **Remote deployment** - Deploy till Render.com eller andra cloud providers
+
+## 📦 Teknologier
+
+### Frontend
+- **Vite** - Build tool och dev server
+- **TypeScript** - Type-safe JavaScript
+- **React** - UI-framework
+- **shadcn-ui** - UI-komponentbibliotek
+- **Tailwind CSS** - Utility-first CSS
+- **Supabase** - Backend och databas
+
+### MCP Server
+- **Node.js** ≥ 18.0.0
+- **TypeScript** - Type-safe development
+- **@modelcontextprotocol/sdk** - MCP SDK
+- **Supabase** - Databas och API
+- **Express** - HTTP server (för remote deployment)
+- **Zod** - Schema validation
+- **Winston** - Logging
+
+## 🗂️ Projektstruktur
+
+```
+Riksdag-Regering.AI/
+├── src/                    # Frontend källkod
+│   ├── components/         # React-komponenter
+│   ├── hooks/             # Custom React hooks
+│   ├── lib/               # Hjälpfunktioner
+│   ├── integrations/      # API-integrationer
+│   └── pages/             # Sidkomponenter
+├── mcp/                   # MCP Server
+│   ├── src/
+│   │   ├── tools/         # MCP verktyg
+│   │   ├── resources/     # MCP resurser
+│   │   └── utils/         # Hjälpfunktioner
+│   ├── dist/              # Byggda filer
+│   └── README.md          # MCP-dokumentation
+├── supabase/              # Supabase Edge Functions
+└── public/                # Statiska filer
+```
+
+## 🔧 Konfiguration
+
+### Frontend (.env)
+
+```env
+VITE_SUPABASE_URL=your-project-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+### MCP Server (mcp/.env)
+
+```env
+SUPABASE_URL=your-project-url
+SUPABASE_ANON_KEY=your-anon-key
+```
+
+## 📚 Datakällor
+
+Projektet använder data från:
+
+- **Sveriges Riksdag** (data.riksdagen.se)
+  - Ledamöter och uppdrag
+  - Dokument (motioner, propositioner, betänkanden)
+  - Anföranden och debatter
+  - Voteringar och röstningsdata
+
+- **Regeringskansliet** (regeringen.se via g0v.se)
+  - Pressmeddelanden
+  - Propositioner
+  - Statens offentliga utredningar (SOU)
+  - Departementsserien
+  - Remisser och rapporter
+
+## 🚢 Deployment
+
+### Web Application
+
+#### GitHub Pages
+
+```bash
+npm run build:github-pages
+npm run deploy
+```
+
+#### Custom Domain
+
+```bash
+npm run build
+# Upload dist/ to your hosting provider
+```
+
+### MCP Server
+
+Se [mcp/README.md](mcp/README.md) för deployment-instruktioner till:
+- Render.com
+- Google Cloud Run
+- AWS ECS
+- Docker
+
+## 🧪 Testning
+
+```bash
+# Frontend tester
+npm test
+npm run test:coverage
+
+# MCP Server tester
+cd mcp
+npm test
+npm run test:coverage
+```
+
+## 🤝 Bidra
+
+Bidrag välkomnas! För att bidra:
+
+1. Forka projektet
+2. Skapa en feature-branch (`git checkout -b feature/amazing-feature`)
+3. Commit dina ändringar (`git commit -m 'Add some amazing feature'`)
+4. Push till branchen (`git push origin feature/amazing-feature`)
+5. Öppna en Pull Request
+
+## 📖 Dokumentation
+
+- [MCP Server README](mcp/README.md) - Detaljerad MCP-dokumentation
+- [API Documentation](docs/API.md) - API-guide
+- [Contributing Guide](CONTRIBUTING.md) - Bidragsriktlinjer
+
+## 📄 Licens
+
+MIT License - Se [LICENSE](LICENSE) för detaljer.
+
+## 🙏 Erkännanden
+
+- **Riksdagen** för deras öppna API
+- **g0v.se** för aggregering av regeringsdata
+- **Anthropic** för Model Context Protocol
+- **Supabase** för backend-infrastruktur
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/KSAklfszf921/Riksdag-Regering.AI/issues)
+- **Diskussioner**: [GitHub Discussions](https://github.com/KSAklfszf921/Riksdag-Regering.AI/discussions)
+
+## 🔗 Länkar
+
+- [Live Demo](https://ksaaklfszf921.github.io/Riksdag-Regering.AI/)
+- [Riksdagens öppna data](https://data.riksdagen.se/)
+- [g0v.se](https://g0v.se/)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+
+---
+
+## Lovable Project Info
+
+**Project URL**: https://lovable.dev/projects/4734fa32-ab04-435b-8cf6-d46801e10e63
+
+### Utveckling med Lovable
+
+Du kan redigera detta projekt på flera sätt:
+
+**Använd Lovable**
+- Besök [Lovable Project](https://lovable.dev/projects/4734fa32-ab04-435b-8cf6-d46801e10e63)
+- Ändringar synkas automatiskt till detta repo
+
+**Använd din IDE**
+- Klona repot och pusha ändringar
+- Ändringar reflekteras i Lovable
+
+**GitHub Codespaces**
+- Klicka på "Code" > "Codespaces" > "New codespace"
+- Redigera direkt i browsern
+
+## Frontend Technologies
 
 - Vite
 - TypeScript
