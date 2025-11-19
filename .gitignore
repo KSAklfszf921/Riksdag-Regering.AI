@@ -30,4 +30,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?.git-backup-*
-mcp/
+mcp/node_modules/
+mcp/dist/
+mcp/.env
