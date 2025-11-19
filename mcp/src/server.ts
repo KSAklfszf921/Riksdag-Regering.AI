@@ -299,11 +299,19 @@ function createApp() {
           protocolVersion: '2024-11-05',
           capabilities: {
             tools: {},
-            resources: {},
+            resources: {
+              subscribe: false, // Not yet implemented
+              listChanged: false
+            },
+            prompts: {
+              listChanged: false
+            },
+            logging: {}
           },
           serverInfo: {
             name: 'riksdag-regering-mcp',
             version: '2.0.0',
+            description: 'MCP Server för Riksdagen och Regeringskansliet med 27 verktyg och 5 resurser'
           },
         };
 
@@ -315,6 +323,167 @@ function createApp() {
           });
         }
         return res.json(initResult);
+      }
+
+      // Handle ping method (health check)
+      if (method === 'ping') {
+        const pingResult = {};
+        if (isJsonRpc) {
+          return res.json({
+            jsonrpc: '2.0',
+            id: requestId,
+            result: pingResult
+          });
+        }
+        return res.json(pingResult);
+      }
+
+      // Handle initialized notification (no response needed)
+      if (method === 'notifications/initialized') {
+        logger.info('Client initialization complete');
+        // Notifications don't send responses
+        return res.status(204).send();
+      }
+
+      // Handle prompts/list
+      if (method === 'prompts/list') {
+        const promptsResult = {
+          prompts: [
+            {
+              name: 'analyze-ledamot',
+              description: 'Analysera en riksdagsledamots aktivitet och röstningsbeteende',
+              arguments: [
+                {
+                  name: 'ledamot_id',
+                  description: 'Ledamotens ID från Riksdagen',
+                  required: true
+                }
+              ]
+            },
+            {
+              name: 'compare-parties',
+              description: 'Jämför två partiers aktivitet och statistik',
+              arguments: [
+                {
+                  name: 'parti1',
+                  description: 'Förkortning för första partiet (t.ex. S, M, SD)',
+                  required: true
+                },
+                {
+                  name: 'parti2',
+                  description: 'Förkortning för andra partiet',
+                  required: true
+                }
+              ]
+            },
+            {
+              name: 'search-documents',
+              description: 'Sök efter dokument i Riksdagen baserat på ämne eller text',
+              arguments: [
+                {
+                  name: 'query',
+                  description: 'Sökord eller fras',
+                  required: true
+                },
+                {
+                  name: 'document_type',
+                  description: 'Dokumenttyp (mot, prop, bet, etc.)',
+                  required: false
+                }
+              ]
+            },
+            {
+              name: 'analyze-voting',
+              description: 'Analysera en specifik votering och partiernas röstbeteende',
+              arguments: [
+                {
+                  name: 'votering_id',
+                  description: 'Votering ID från Riksdagen',
+                  required: true
+                }
+              ]
+            }
+          ]
+        };
+
+        if (isJsonRpc) {
+          return res.json({
+            jsonrpc: '2.0',
+            id: requestId,
+            result: promptsResult
+          });
+        }
+        return res.json(promptsResult);
+      }
+
+      // Handle prompts/get
+      if (method === 'prompts/get') {
+        const promptName = params?.name;
+        if (!promptName) {
+          const error = { error: 'Prompt name is required' };
+          if (isJsonRpc) {
+            return res.json({
+              jsonrpc: '2.0',
+              id: requestId,
+              error: { code: -32602, message: 'Invalid params', data: error }
+            });
+          }
+          return res.status(400).json(error);
+        }
+
+        // Return prompt template based on name
+        const prompts: Record<string, any> = {
+          'analyze-ledamot': {
+            description: 'Analysera en riksdagsledamots aktivitet',
+            messages: [
+              {
+                role: 'user',
+                content: {
+                  type: 'text',
+                  text: `Analysera ledamot med ID {{ledamot_id}}. Inkludera:
+- Grundläggande information
+- Anföranden (antal och ämnen)
+- Röstningsbeteende
+- Jämförelse med partikollegor`
+                }
+              }
+            ]
+          },
+          'compare-parties': {
+            description: 'Jämför två partiers aktivitet',
+            messages: [
+              {
+                role: 'user',
+                content: {
+                  type: 'text',
+                  text: 'Jämför partierna {{parti1}} och {{parti2}} avseende aktivitet, dokument och röstningsbeteende'
+                }
+              }
+            ]
+          }
+        };
+
+        const prompt = prompts[promptName];
+        if (!prompt) {
+          const error = { error: 'Prompt not found' };
+          if (isJsonRpc) {
+            return res.json({
+              jsonrpc: '2.0',
+              id: requestId,
+              error: { code: -32602, message: 'Prompt not found', data: error }
+            });
+          }
+          return res.status(404).json(error);
+        }
+
+        if (isJsonRpc) {
+          return res.json({
+            jsonrpc: '2.0',
+            id: requestId,
+            result: prompt
+          });
+        }
+        return res.json(prompt);
       }
 
       // Route to appropriate MCP method
