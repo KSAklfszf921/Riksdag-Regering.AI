@@ -1,0 +1,38 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Development files
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+coverage
+*.test.ts
+*.spec.ts
+
+# Build artifacts
+dist/*.map
+
+# Logs
+logs
+*.log
