@@ -38,3 +38,4 @@ assets
 mcp/node_modules/
 mcp/dist/
 mcp/.env
+mcp/.mcp_token

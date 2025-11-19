@@ -61,16 +61,24 @@ För att göra servern tillgänglig för alla utan autentisering:
 
 ### Claude Code CLI
 
+**Metod 1: Interaktiv (Rekommenderat)**
 ```bash
-# SSE transport (rekommenderat)
-claude mcp add riksdag-regering \
-  --url https://riksdag-regering-ai.onrender.com/sse \
-  --transport sse
+claude mcp add riksdag-regering --transport http https://riksdag-regering-ai.onrender.com/mcp
+```
 
-# HTTP transport (alternativ)
-claude mcp add riksdag-regering \
-  --url https://riksdag-regering-ai.onrender.com/mcp \
-  --transport http
+**Metod 2: Manuell konfiguration**
+
+Redigera `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "riksdag-regering": {
+      "transport": "http",
+      "url": "https://riksdag-regering-ai.onrender.com/mcp"
+    }
+  }
+}
 ```
 
 **Verifiera:**
