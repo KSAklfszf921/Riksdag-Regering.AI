@@ -181,6 +181,61 @@ function createApp() {
     }
   });
 
+  // Unified /mcp endpoint for ChatGPT and other clients (NO AUTH)
+  app.post('/mcp', async (req, res) => {
+    try {
+      const { method, params } = req.body;
+
+      if (!method) {
+        return res.status(400).json({ error: 'Method is required' });
+      }
+
+      logger.info(`[MCP] ${method}`, params ? { params } : {});
+
+      // Route to appropriate MCP method
+      let result;
+      switch (method) {
+        case 'tools/list':
+          const toolsCacheKey = 'tools-list';
+          const cachedTools = cache.get(toolsCacheKey);
+          if (cachedTools) {
+            result = cachedTools;
+          } else {
+            result = await mcpServer.request({ method: 'tools/list' }, ListToolsRequestSchema);
+            cache.set(toolsCacheKey, result);
+          }
+          break;
+
+        case 'tools/call':
+          result = await mcpServer.request({ method: 'tools/call', params }, CallToolRequestSchema);
+          break;
+
+        case 'resources/list':
+          const resourcesCacheKey = 'resources-list';
+          const cachedResources = cache.get(resourcesCacheKey);
+          if (cachedResources) {
+            result = cachedResources;
+          } else {
+            result = await mcpServer.request({ method: 'resources/list' }, ListResourcesRequestSchema);
+            cache.set(resourcesCacheKey, result);
+          }
+          break;
+
+        case 'resources/read':
+          result = await mcpServer.request({ method: 'resources/read', params }, ReadResourceRequestSchema);
+          break;
+
+        default:
+          return res.status(400).json({ error: `Unknown method: ${method}` });
+      }
+
+      res.json(result);
+    } catch (error) {
+      logger.error('Error processing MCP request:', error);
+      res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+  });
+
   // SSE endpoint for streaming MCP protocol
   app.get('/sse', (req, res) => {
     // Set SSE headers
@@ -204,7 +259,7 @@ function createApp() {
     });
   });
 
-  // POST endpoint for sending MCP requests via SSE
+  // POST endpoint for sending MCP requests via SSE (with optional auth)
   app.post('/sse', authenticateApiKey, async (req, res) => {
     try {
       const { method, params } = req.body;
@@ -269,15 +324,16 @@ async function main() {
       logger.info(`🚀 Riksdag-Regering MCP Server v2.0 started`);
       logger.info(`📡 HTTP Server listening on port ${PORT}`);
       logger.info(`🌍 Environment: ${NODE_ENV}`);
-      logger.info(`🔒 API Key authentication: ${API_KEY ? 'enabled' : 'disabled'}`);
+      logger.info(`🔒 API Key authentication: ${API_KEY ? 'enabled (SSE only)' : 'disabled'}`);
       logger.info(`\nEndpoints:`);
       logger.info(`  GET  /health - Health check`);
+      logger.info(`  POST /mcp - Unified MCP endpoint (NO AUTH, for ChatGPT)`);
       logger.info(`  GET  /sse - SSE streaming endpoint`);
-      logger.info(`  POST /sse - Send MCP requests via SSE`);
-      logger.info(`  POST /mcp/list-tools - List available tools`);
-      logger.info(`  POST /mcp/call-tool - Call a tool`);
-      logger.info(`  POST /mcp/list-resources - List available resources`);
-      logger.info(`  POST /mcp/read-resource - Read a resource`);
+      logger.info(`  POST /sse - Send MCP requests via SSE (with auth)`);
+      logger.info(`  POST /mcp/list-tools - List available tools (legacy, with auth)`);
+      logger.info(`  POST /mcp/call-tool - Call a tool (legacy, with auth)`);
+      logger.info(`  POST /mcp/list-resources - List available resources (legacy, with auth)`);
+      logger.info(`  POST /mcp/read-resource - Read a resource (legacy, with auth)`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
