@@ -2,10 +2,14 @@
 
 En komplett Model Context Protocol (MCP) server för att hämta, söka, analysera och jämföra data från Sveriges Riksdag och Regeringskansliet.
 
+> 🌐 **Remote MCP Server** - Denna server stödjer både lokal STDIO och remote HTTP deployment!
+
 ## 📋 Innehåll
 
 - [Översikt](#översikt)
+- [Funktioner](#funktioner)
 - [Installation](#installation)
+- [Deployment](#deployment)
 - [Konfiguration](#konfiguration)
 - [Användning](#användning)
 - [Tillgängliga Verktyg](#tillgängliga-verktyg)
@@ -15,10 +19,20 @@ En komplett Model Context Protocol (MCP) server för att hämta, söka, analyser
 
 ## 🎯 Översikt
 
-Denna MCP server tillhandahåller kraftfulla verktyg för att arbeta med svensk politisk data:
+Denna MCP server tillhandahåller kraftfulla verktyg för att arbeta med svensk politisk data.
 
-### Funktioner
+## ✨ Funktioner
 
+### MCP Protocol Support
+- ✅ **Remote HTTP Server** - Deploy till molnet (Render.com, Google Cloud, AWS, etc.)
+- ✅ **Dual Transport** - Stödjer både Streamable HTTP (modern) och HTTP+SSE (legacy)
+- ✅ **OAuth 2.1 Authentication** - Med PKCE för säker access
+- ✅ **Session Management** - Persistent conversational state
+- ✅ **Rate Limiting** - Skydd mot overuse
+- ✅ **Caching** - Optimerad prestanda
+- ✅ **Logging & Monitoring** - Structured logging med Winston
+
+### Data Capabilities
 - **Sökning**: Sök efter ledamöter, dokument, anföranden, voteringar och regeringsdokument
 - **Analys**: Analysera partifördelning, röstningsstatistik, ledamötsaktivitet och dokumenttrender
 - **Jämförelse**: Jämför ledamöter, partier, voteringar och dokument
@@ -75,7 +89,66 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
+## 🚀 Deployment
+
+Denna server kan deployas som en remote HTTP server till molnet för enkel integration med LLM-klienter som Claude.
+
+### Quick Deploy till Render.com
+
+1. **Pusha till GitHub**
+   ```bash
+   git push origin main
+   ```
+
+2. **Skapa Web Service på Render**
+   - Gå till [Render Dashboard](https://dashboard.render.com)
+   - Klicka "New +" > "Web Service"
+   - Anslut GitHub repository
+   - Render detekterar `render.yaml` automatiskt
+
+3. **Konfigurera Environment Variables**
+   ```
+   SUPABASE_URL=your-url
+   SUPABASE_ANON_KEY=your-key
+   SUPABASE_SERVICE_ROLE_KEY=your-service-key
+   ```
+
+4. **Deploy**
+   - URL blir: `https://riksdag-regering-mcp.onrender.com`
+   - Health check: `https://your-app.onrender.com/health`
+
+### Deploy med Docker
+
+```bash
+# Bygg image
+docker build -t riksdag-regering-mcp .
+
+# Kör container
+docker run -p 3000:3000 --env-file .env riksdag-regering-mcp
+```
+
+### Andra Cloud Providers
+
+Se [DEPLOYMENT.md](./DEPLOYMENT.md) för detaljer om:
+- Google Cloud Run
+- AWS ECS
+- Azure App Service
+- Digital Ocean
+
+### Database Setup
+
+Innan deployment, kör SQL-migration i Supabase:
+```bash
+cat src/database/migrations/001_create_oauth_tables.sql
+```
+
+Kopiera SQL och kör i Supabase SQL Editor för att skapa OAuth-tabeller.
+
 ## ⚙️ Konfiguration
+
+### Local STDIO (Claude Desktop)
+
+För lokal användning med Claude Desktop:
 
 ### Claude Desktop
 
