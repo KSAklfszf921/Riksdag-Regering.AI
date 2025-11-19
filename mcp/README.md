@@ -1,6 +1,8 @@
-# Riksdag-Regering MCP Server
+# Riksdag-Regering MCP Server v2.0
 
-En komplett Model Context Protocol (MCP) server för att hämta, söka, analysera och jämföra data från Sveriges Riksdag och Regeringskansliet.
+En professionell Model Context Protocol (MCP) server för att hämta, söka, analysera och jämföra data från Sveriges Riksdag och Regeringskansliet.
+
+**Version 2.0** - Omfattande förbättring med säkerhetsvalidering och 13 nya verktyg!
 
 ## 📋 Innehåll
 
@@ -12,32 +14,40 @@ En komplett Model Context Protocol (MCP) server för att hämta, söka, analyser
 - [Resources](#resources)
 - [Exempel](#exempel)
 - [API-dokumentation](#api-dokumentation)
+- [Säkerhet](#säkerhet)
 
 ## 🎯 Översikt
 
-Denna MCP server tillhandahåller kraftfulla verktyg för att arbeta med svensk politisk data:
+Denna MCP server tillhandahåller kraftfulla verktyg för att arbeta med svensk politisk data med inbyggd säkerhetsvalidering.
 
 ### Funktioner
 
 - **Sökning**: Sök efter ledamöter, dokument, anföranden, voteringar och regeringsdokument
 - **Analys**: Analysera partifördelning, röstningsstatistik, ledamötsaktivitet och dokumenttrender
 - **Jämförelse**: Jämför ledamöter, partier, voteringar och dokument
+- **Hämtning**: Hämta specifika dokument och data med fullständig information
+- **Aggregering**: Få toplistor, statistik och global sökning
 - **Resources**: Hämta strukturerad data om partier, departement och statistik
+- **Säkerhet**: Inbyggd validering som endast tillåter data från Riksdagen och Regeringskansliet
 
-### Datakällor
+### Datakällor (48 tabeller)
 
-- **Riksdagen**: data.riksdagen.se API
-  - Ledamöter
-  - Dokument (motioner, propositioner, betänkanden, etc.)
+- **Riksdagen** (20 tabeller): data.riksdagen.se API
+  - Ledamöter och uppdrag
+  - Dokument (motioner, propositioner, betänkanden, frågor, interpellationer)
   - Anföranden
   - Voteringar och röstningsdata
+  - Utskott och protokoll
+  - SOU, direktiv och EU-förslag
 
-- **Regeringskansliet**: g0v.se API
+- **Regeringskansliet** (28 tabeller): g0v.se API
   - Pressmeddelanden
   - Propositioner
   - Statens offentliga utredningar (SOU)
-  - Departementsserien
-  - Remisser och rapporter
+  - Departementsserien och forordningsmotiv
+  - Remisser, rapporter och regeringsuppdrag
+  - Tal, artiklar och debattartiklar
+  - Internationella dokument
 
 ## 📦 Installation
 
