@@ -7,10 +7,15 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Package manager lockfiles (using npm)
+bun.lockb
+yarn.lock
+pnpm-lock.yaml
+
 node_modules
-# dist kommenterad ut för att tillåta deployment av byggda filer
-# dist
+dist
 dist-ssr
+assets
 *.local
 
 # Environment Variables
