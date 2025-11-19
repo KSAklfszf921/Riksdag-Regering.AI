@@ -1,16 +1,13 @@
 
 <img width="1393" height="461" alt="Skärmavbild 2025-11-19 kl  23 26 35" src="https://github.com/user-attachments/assets/e6f84155-c3d3-4202-9860-c86f3be4164a" />
 
-# 🏛️ Riksdag & Regering MCP-server
+# 🏛️   Riksdag & Regering MCP-server   🏛️
 
 [![Server Status](https://img.shields.io/website?url=https%3A%2F%2Friksdag-regering-ai.onrender.com%2Fhealth&label=Server%20Status&up_message=online&down_message=offline)](https://riksdag-regering-ai.onrender.com/health)
 [![MCP Protocol](https://img.shields.io/badge/MCP%20Protocol-2024--11--05-blue?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIGZpbGw9IndoaXRlIi8+CiAgPHBhdGggZD0iTTEyIDJMMiA3VjE3TDEyIDIyTDIyIDE3VjdMMTIgMloiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4=)](https://modelcontextprotocol.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-![Uploading Skärmavbild 2025-11-19 kl. 23.26.35.png…]()
 
-En [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server som ger AI-assistenter tillgång till Sveriges Riksdags- och Regeringskansliets öppna data. Sök, analysera och jämför dokument, ledam
-
-öter, anföranden, voteringar och mycket mer.
+En [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server som ger AI-assistenter tillgång till öppen data från Regeringskansliet och Riksdagen. Sök, analysera och jämför dokument, ledamöter, anföranden, voteringar och mycket mer. 
 
 **Skapad av:** Isak Skogstad ([isak.skogstad@me.com](mailto:isak.skogstad@me.com))
 
@@ -233,69 +230,29 @@ Cachad och optimerad datalagring med real-time uppdateringar. Snabb åtkomst til
 
 ## 📖 Användningsområden
 
-### 👨‍🎓 För Politiker och Beslutsfattare
+### För policynörden
 - Spåra voteringsmönster över partier
 - Analysera ledamöters aktivitet och engagemang
-- Övervaka dokumenttrender över tid
-- Identifiera samarbetsmönster
 
-### 📰 För Journalister och Forskare
+
+### För den nyfikkne
 - Korsreferera riksdags- och regeringsdokument
 - Hitta relevanta anföranden och debatter
 - Identifiera mest aktiva ledamöter inom specifika frågor
-- Analysera politiska trender
 
-### 📊 För Dataanalytiker
+### För konspiratören
 - Tidsserieanalys av parlamentarisk aktivitet
 - Partijämförelser och koalitionsanalys
 - Dokumentpåverkansanalys
-- Röstningsbeteendeanalys
 
-### 🤖 För AI-utvecklare
+### För vibekodaren
 - Utöka LLM:er med svensk politisk data
 - Bygg konversationsgränssnitt för medborgardata
-- Skapa faktakontrollverktyg
 - Automatisera politisk rapportering
 
 ---
-
-## 📚 Dokumentation
-
-### Snabbstart
-- **[Tutorials & Examples](mcp/TUTORIALS.md)** - Praktiska guider och användningsexempel
-- **[API Reference](mcp/API_REFERENCE.md)** - Komplett referens för alla 27 verktyg
-
-### Installation & Deployment
-- **[Installation Guide](mcp/INSTALL_GUIDE.md)** - Detaljerade installationsinstruktioner
-- **[Usage Guide](mcp/USAGE_GUIDE.md)** - Verktygsanvändning och exempel
-- **[Deployment Guide](mcp/DEPLOYMENT.md)** - Cloud deployment (Render, Railway, Fly.io)
-
-### Avancerat
-- **[MCP Registry Guide](mcp/MCP_REGISTRY.md)** - Registrering i MCP Registry
-- **[Technical Docs](mcp/README.md)** - Teknisk dokumentation
-- **[Changelog](mcp/CHANGELOG.md)** - Versionshistorik
-
 ---
 
-## 🛠️ Utveckling
-
-```bash
-# Installera workspace
-npm install
-
-# Kör MCP server i dev-läge
-npm run mcp:dev
-
-# Bygg MCP server
-npm run mcp:build
-
-# Kör tester
-npm run mcp:test
-
-# Lint och format
-npm run mcp:lint
-npm run mcp:format
-```
 
 ### Teknisk Stack
 
