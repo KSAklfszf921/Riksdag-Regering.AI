@@ -3,6 +3,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { validateTable } from './validation.js';
 
 let supabaseClient: SupabaseClient | null = null;
 
@@ -34,4 +35,16 @@ export function getSupabase(): SupabaseClient {
     return initSupabase();
   }
   return supabaseClient;
+}
+
+/**
+ * Säker query-builder som validerar tabellnamn
+ * Detta säkerställer att endast data från Riksdagen och Regeringskansliet används
+ */
+export function safeQuery(tableName: string) {
+  // Validera att tabellen är tillåten
+  validateTable(tableName);
+
+  const client = getSupabase();
+  return client.from(tableName);
 }
