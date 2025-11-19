@@ -232,7 +232,8 @@ function createApp() {
       res.json(result);
     } catch (error) {
       logger.error('Error processing MCP request:', error);
-      res.status(500).json({ error: 'Internal server error', details: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ error: 'Internal server error', details: errorMessage });
     }
   });
 
