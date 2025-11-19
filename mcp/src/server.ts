@@ -209,6 +209,67 @@ function createApp() {
     }
   });
 
+  // GET handler for /mcp - Information page
+  app.get('/mcp', (req, res) => {
+    res.json({
+      service: 'riksdag-regering-mcp',
+      version: '2.0.0',
+      description: 'MCP Server för Riksdagen och Regeringskansliet',
+      status: 'operational',
+      usage: {
+        method: 'POST',
+        contentType: 'application/json',
+        body: {
+          method: 'tools/list | tools/call | resources/list | resources/read',
+          params: 'optional parameters depending on method'
+        }
+      },
+      examples: [
+        {
+          description: 'List all available tools',
+          request: {
+            method: 'POST',
+            url: '/mcp',
+            body: { method: 'tools/list' }
+          }
+        },
+        {
+          description: 'Call a tool',
+          request: {
+            method: 'POST',
+            url: '/mcp',
+            body: {
+              method: 'tools/call',
+              params: {
+                name: 'search_ledamoter',
+                arguments: { parti: 'S', limit: 10 }
+              }
+            }
+          }
+        },
+        {
+          description: 'List all resources',
+          request: {
+            method: 'POST',
+            url: '/mcp',
+            body: { method: 'resources/list' }
+          }
+        }
+      ],
+      endpoints: {
+        '/health': 'GET - Health check',
+        '/mcp': 'POST - MCP protocol endpoint',
+        '/sse': 'GET - Server-Sent Events streaming'
+      },
+      documentation: 'https://github.com/KSAklfszf921/Riksdag-Regering.AI',
+      database: {
+        connected: true,
+        totalRecords: '14,372+',
+        sources: ['Riksdagen', 'Regeringskansliet']
+      }
+    });
+  });
+
   // Unified /mcp endpoint for ChatGPT and other clients (NO AUTH)
   app.post('/mcp', async (req, res) => {
     try {
