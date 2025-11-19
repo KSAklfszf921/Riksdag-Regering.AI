@@ -460,6 +460,34 @@ function createApp() {
                 }
               }
             ]
+          },
+          'search-documents': {
+            description: 'Sök efter dokument i Riksdagen baserat på ämne eller text',
+            messages: [
+              {
+                role: 'user',
+                content: {
+                  type: 'text',
+                  text: `Sök efter dokument om {{query}}${promptName === 'search-documents' ? '{{#if document_type}} av typ {{document_type}}{{/if}}' : ''}. Använd search_dokument verktyget.`
+                }
+              }
+            ]
+          },
+          'analyze-voting': {
+            description: 'Analysera en specifik votering och partiernas röstbeteende',
+            messages: [
+              {
+                role: 'user',
+                content: {
+                  type: 'text',
+                  text: `Analysera votering {{votering_id}}. Inkludera:
+- Voteringens ämne och kontext
+- Hur olika partier röstade
+- Avvikare från partilinjen
+- Resultat och betydelse`
+                }
+              }
+            ]
           }
         };
 
