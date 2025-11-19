@@ -270,16 +270,52 @@ function createApp() {
     });
   });
 
-  // Unified /mcp endpoint for ChatGPT and other clients (NO AUTH)
+  // Unified /mcp endpoint - supports both standard MCP (JSON-RPC 2.0) and legacy format
   app.post('/mcp', async (req, res) => {
     try {
-      const { method, params } = req.body;
+      // Detect JSON-RPC 2.0 format vs legacy format
+      const isJsonRpc = 'jsonrpc' in req.body;
+      const requestId = req.body.id;
+      const method = req.body.method;
+      const params = req.body.params;
 
       if (!method) {
-        return res.status(400).json({ error: 'Method is required' });
+        const error = { error: 'Method is required' };
+        if (isJsonRpc) {
+          return res.json({
+            jsonrpc: '2.0',
+            id: requestId,
+            error: { code: -32600, message: 'Invalid Request', data: error }
+          });
+        }
+        return res.status(400).json(error);
       }
 
       logger.info(`[MCP] ${method}`, params ? { params } : {});
+
+      // Handle initialize method (required for standard MCP)
+      if (method === 'initialize') {
+        const initResult = {
+          protocolVersion: '2024-11-05',
+          capabilities: {
+            tools: {},
+            resources: {},
+          },
+          serverInfo: {
+            name: 'riksdag-regering-mcp',
+            version: '2.0.0',
+          },
+        };
+
+        if (isJsonRpc) {
+          return res.json({
+            jsonrpc: '2.0',
+            id: requestId,
+            result: initResult
+          });
+        }
+        return res.json(initResult);
+      }
 
       // Route to appropriate MCP method
       let result;
@@ -315,13 +351,37 @@ function createApp() {
           break;
 
         default:
-          return res.status(400).json({ error: `Unknown method: ${method}` });
+          const unknownError = { error: `Unknown method: ${method}` };
+          if (isJsonRpc) {
+            return res.json({
+              jsonrpc: '2.0',
+              id: requestId,
+              error: { code: -32601, message: 'Method not found', data: unknownError }
+            });
+          }
+          return res.status(400).json(unknownError);
       }
 
+      // Return result in appropriate format
+      if (isJsonRpc) {
+        return res.json({
+          jsonrpc: '2.0',
+          id: requestId,
+          result
+        });
+      }
       res.json(result);
     } catch (error) {
       logger.error('Error processing MCP request:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if ('jsonrpc' in req.body) {
+        return res.json({
+          jsonrpc: '2.0',
+          id: req.body.id,
+          error: { code: -32603, message: 'Internal error', data: { details: errorMessage } }
+        });
+      }
       res.status(500).json({ error: 'Internal server error', details: errorMessage });
     }
   });
