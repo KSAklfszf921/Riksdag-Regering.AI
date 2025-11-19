@@ -86,10 +86,21 @@ export function sortBy<T>(data: T[], field: keyof T, order: 'asc' | 'desc' = 'as
 }
 
 /**
- * Extrahera text från HTML
+ * Extrahera text från HTML - Säker sanitization
+ * Använder dubbel pass för att undvika incomplete sanitization
  */
 export function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').trim();
+  // First pass: remove all HTML tags
+  let text = html.replace(/<[^>]*>/g, '');
+  // Second pass: remove any remaining < or > characters and entities
+  text = text.replace(/[<>]/g, '');
+  // Decode common HTML entities
+  text = text.replace(/&amp;/g, '&')
+             .replace(/&lt;/g, '<')
+             .replace(/&gt;/g, '>')
+             .replace(/&quot;/g, '"')
+             .replace(/&#39;/g, "'");
+  return text.trim();
 }
 
 /**
