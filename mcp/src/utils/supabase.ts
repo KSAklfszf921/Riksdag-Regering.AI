@@ -3,9 +3,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { config } from './config.js';
-import { logger } from './logger.js';
-import { databaseError } from './errors.js';
+
 
 let supabaseClient: SupabaseClient | null = null;
 
@@ -55,62 +53,5 @@ export function getSupabase(): SupabaseClient {
 }
 
 /**
- * Retry logic för databas-operationer
- */
-export async function withRetry<T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 4,
-  baseDelay: number = 2000
-): Promise<T> {
-  let lastError: any;
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error: any) {
-      lastError = error;
-
-      // Don't retry on certain errors
-      if (error.code === 'PGRST116' || error.code === '42P01') {
-        // Table doesn't exist or similar structural errors
-        throw databaseError(error.message, error);
-      }
-
-      if (attempt < maxRetries) {
-        const delay = baseDelay * Math.pow(2, attempt);
-        logger.warn(`Database operation failed, retrying in ${delay}ms`, {
-          attempt: attempt + 1,
-          maxRetries,
-          error: error.message,
-        });
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-
-  logger.error('Database operation failed after all retries', {
-    error: lastError?.message,
-  });
-
-  throw databaseError('Operation failed after multiple retries', lastError);
-}
-
-/**
- * Health check för Supabase connection
- */
-export async function checkSupabaseHealth(): Promise<boolean> {
-  try {
-    const supabase = getSupabase();
-    const { error } = await supabase.from('riksdagen_ledamoter').select('count').limit(1);
-
-    if (error) {
-      logger.error('Supabase health check failed', { error: error.message });
-      return false;
-    }
-
-    return true;
-  } catch (error: any) {
-    logger.error('Supabase health check error', { error: error.message });
-    return false;
-  }
 }
