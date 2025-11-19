@@ -269,10 +269,18 @@ Cachad och optimerad datalagring med real-time uppdateringar. Snabb åtkomst til
 
 ## 📚 Dokumentation
 
+### Snabbstart
+- **[Tutorials & Examples](mcp/TUTORIALS.md)** - Praktiska guider och användningsexempel
+- **[API Reference](mcp/API_REFERENCE.md)** - Komplett referens för alla 27 verktyg
+
+### Installation & Deployment
 - **[Installation Guide](mcp/INSTALL_GUIDE.md)** - Detaljerade installationsinstruktioner
 - **[Usage Guide](mcp/USAGE_GUIDE.md)** - Verktygsanvändning och exempel
 - **[Deployment Guide](mcp/DEPLOYMENT.md)** - Cloud deployment (Render, Railway, Fly.io)
-- **[API Reference](mcp/README.md)** - Komplett teknisk dokumentation
+
+### Avancerat
+- **[MCP Registry Guide](mcp/MCP_REGISTRY.md)** - Registrering i MCP Registry
+- **[Technical Docs](mcp/README.md)** - Teknisk dokumentation
 - **[Changelog](mcp/CHANGELOG.md)** - Versionshistorik
 
 ---
