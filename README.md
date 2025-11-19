@@ -1,15 +1,13 @@
 
 <img width="1393" height="461" alt="Skärmavbild 2025-11-19 kl  23 26 35" src="https://github.com/user-attachments/assets/e6f84155-c3d3-4202-9860-c86f3be4164a" />
 
-# 🏛️   Riksdag & Regering MCP-server   🏛️
+# Riksdag & Regering MCP-server  
 
 [![Server Status](https://img.shields.io/website?url=https%3A%2F%2Friksdag-regering-ai.onrender.com%2Fhealth&label=Server%20Status&up_message=online&down_message=offline)](https://riksdag-regering-ai.onrender.com/health)
 [![MCP Protocol](https://img.shields.io/badge/MCP%20Protocol-2024--11--05-blue?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIGZpbGw9IndoaXRlIi8+CiAgPHBhdGggZD0iTTEyIDJMMiA3VjE3TDEyIDIyTDIyIDE3VjdMMTIgMloiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4=)](https://modelcontextprotocol.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-En [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server som ger AI-assistenter tillgång till öppen data från Regeringskansliet och Riksdagen. Sök, analysera och jämför dokument, ledamöter, anföranden, voteringar och mycket mer. 
-
-**Skapad av:** Isak Skogstad ([isak.skogstad@me.com](mailto:isak.skogstad@me.com))
+En MCP-server som ger LLMs möjlighet att söka, hitta och extrahera öppen data och information från Riksdagen och Regeringskansliet. Ansluten till samtliga öppna API:er från Riksdagen och nyttjar g0v.se för att tillgå data från Regeringskansliet. Skapad av Isak Skogstad. 
 
 ---
 
