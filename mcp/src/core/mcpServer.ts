@@ -12,6 +12,7 @@ import {
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import { listResources, getResource } from '../resources/index.js';
 
@@ -305,7 +306,17 @@ export function createMCPServer(logger?: { error: (msg: string, ...args: any[]) 
 
   // Lista alla tillgängliga verktyg
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: TOOL_DEFINITIONS };
+    // Konvertera Zod-scheman till JSON Schema
+    const toolsWithJsonSchema = TOOL_DEFINITIONS.map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      inputSchema: zodToJsonSchema(tool.inputSchema, {
+        target: 'jsonSchema7',
+        $refStrategy: 'none'
+      })
+    }));
+
+    return { tools: toolsWithJsonSchema };
   });
 
   // Hantera verktygsanrop
