@@ -12,18 +12,15 @@ bun.lockb
 yarn.lock
 pnpm-lock.yaml
 
+# Dependencies
 node_modules
-dist
-dist-ssr
-assets
-*.local
 
 # Environment Variables
 .env
 .env.local
-.env.production.local
-.env.development.local
-.env.test.local
+.env.production
+.env.development
+.env.test
 
 # Editor directories and files
 .vscode/*
@@ -34,8 +31,13 @@ assets
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?.git-backup-*
+*.sw?
+
+# MCP Server
 mcp/node_modules/
 mcp/dist/
 mcp/.env
 mcp/.mcp_token
+
+# Git backup files
+.git-backup-*

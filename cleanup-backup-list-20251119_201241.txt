@@ -1,0 +1,31 @@
+Riksdag-Regering.AI Cleanup Report
+Date: Ons 19 Nov 2025 20:12:41 CET
+Directory: /Users/isak/Riksdag-Regering.AI
+
+Deleted Files/Folders:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src
+public
+supabase/functions
+docs
+scripts
+vite.config.ts
+vitest.config.ts
+tailwind.config.ts
+postcss.config.js
+components.json
+tsconfig.app.json
+eslint.config.js
+hostinger.config.json
+deploy-config.json
+build.sh
+index.html
+404.html
+robots.txt
+placeholder.svg
+favicon.ico
+.github/workflows/ci.yml.disabled
+.github/workflows/deploy.yml.disabled
+CHATGPT_GUIDE.md
+REMOTE_MCP_GUIDE.md
+supabase/migrations
