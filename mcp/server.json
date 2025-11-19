@@ -3,7 +3,7 @@
   "name": "io.github.KSAklfszf921/riksdag-regering-mcp",
   "title": "Riksdag & Regering MCP",
   "description": "Svenska Riksdagens och Regeringskansliets öppna data - 27 verktyg för politik, dokument och analys",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "websiteUrl": "https://riksdag-regering-ai.onrender.com",
   "repository": {
     "url": "https://github.com/KSAklfszf921/Riksdag-Regering-MCP",
@@ -15,17 +15,13 @@
       "src": "https://mb.cision.com/Public/20518/3733746/9c8944283144c24f_800x800ar.png",
       "mimeType": "image/png",
       "sizes": ["800x800"]
-    },
-    {
-      "src": "https://searchvectorlogo.com/wp-content/uploads/2020/02/regeringskansliet-logo-vector.png",
-      "mimeType": "image/png"
     }
   ],
   "packages": [
     {
       "registryType": "npm",
       "identifier": "riksdag-regering-mcp",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
