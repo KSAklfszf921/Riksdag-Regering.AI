@@ -1,0 +1,50 @@
+# Render Blueprint for Riksdag-Regering MCP Server
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: riksdag-regering-mcp
+    env: docker
+    dockerfilePath: ./mcp/Dockerfile
+    dockerContext: ./mcp
+    plan: free  # Change to 'starter' or higher for production
+    region: frankfurt  # EU region for GDPR compliance
+
+    # Auto-deploy on push to main branch
+    branch: main
+
+    # Environment variables
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: PORT
+        value: 3000
+
+      - key: LOG_LEVEL
+        value: info
+
+      # Supabase configuration (add these in Render dashboard)
+      - key: SUPABASE_URL
+        sync: false  # Set manually in dashboard
+
+      - key: SUPABASE_ANON_KEY
+        sync: false  # Set manually in dashboard
+
+      # Optional: API key for authentication
+      - key: API_KEY
+        sync: false  # Set manually in dashboard (optional)
+
+    # Health check configuration
+    healthCheckPath: /health
+
+    # Auto-scaling configuration (for paid plans)
+    autoDeploy: true
+
+    # Build settings
+    buildFilter:
+      paths:
+        - mcp/**
+      ignoredPaths:
+        - mcp/**/*.md
+        - mcp/**/*.test.ts

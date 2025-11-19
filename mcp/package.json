@@ -14,6 +14,8 @@
     "start": "node dist/server.js",
     "start:stdio": "node dist/index.js",
     "prepare": "npm run build",
+    "type-check": "tsc --noEmit",
+    "lint": "echo 'No linter configured yet'",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"

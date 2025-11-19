@@ -4,15 +4,14 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-
 let supabaseClient: SupabaseClient | null = null;
 
 /**
  * Initialisera Supabase client med connection pooling
  */
 export function initSupabase(): SupabaseClient {
-  const supabaseUrl = config.supabase.url;
-  const supabaseKey = config.supabase.anonKey || config.supabase.serviceRoleKey;
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error(
@@ -36,7 +35,7 @@ export function initSupabase(): SupabaseClient {
       },
     });
 
-    logger.info('Supabase client initialized');
+    console.error('Supabase client initialized');
   }
 
   return supabaseClient;
@@ -50,8 +49,4 @@ export function getSupabase(): SupabaseClient {
     return initSupabase();
   }
   return supabaseClient;
-}
-
-/**
-
 }
