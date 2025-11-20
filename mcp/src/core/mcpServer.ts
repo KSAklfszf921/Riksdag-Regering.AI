@@ -20,6 +20,7 @@ import { listResources, getResource } from '../resources/index.js';
 import {
   searchLedamoter, searchLedamoterSchema,
   searchDokument, searchDokumentSchema,
+  searchDokumentFulltext, searchDokumentFulltextSchema,
   searchAnforanden, searchAnforandenSchema,
   searchVoteringar, searchVoteringarSchema,
   searchRegering, searchRegeringSchema,
@@ -92,6 +93,11 @@ const TOOL_DEFINITIONS = [
     name: 'search_dokument',
     description: 'Sök efter dokument från Riksdagen (motioner, propositioner, betänkanden, etc.)',
     inputSchema: searchDokumentSchema,
+  },
+  {
+    name: 'search_dokument_fulltext',
+    description: 'Fulltextsök i Riksdagens dokument och få utdrag/snippets från cachelagrat innehåll',
+    inputSchema: searchDokumentFulltextSchema,
   },
   {
     name: 'search_anforanden',
@@ -272,6 +278,8 @@ async function handleToolCall(name: string, args: any, logger?: { sendLog?: (tex
     case 'search_dokument':
       await sendLog?.('🔎 Hämtar dokument…');
       return await searchDokument(args, sendLog);
+    case 'search_dokument_fulltext':
+      return await searchDokumentFulltext(args);
     case 'search_anforanden':
       return await searchAnforanden(args);
     case 'search_voteringar':

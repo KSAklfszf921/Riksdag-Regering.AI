@@ -213,6 +213,25 @@ npm start
 
 ### Sökverktyg
 
+Alla sökverktyg delar samma grundparametrar:
+
+- `limit` (valfritt): max antal resultat per anrop (standard: 10, max: 50)
+- `summary` (valfritt): sätt `true` för ett kondenserat svar med ID, namn/titel och en kort textbit/preview
+- `fields` (valfritt): lista med fältnamn om du vill begränsa vilka egenskaper som returneras
+
+Varje listverktyg svarar konsekvent med:
+
+```jsonc
+{
+  "items": [/* resultat */],
+  "count": 5,
+  "limit": 10,
+  "has_more": false
+}
+```
+
+Vill du läsa hela dokumenttexter använder du motsvarande `get_*` verktyg (t.ex. `get_pressmeddelande`, `get_dokument_innehall`) eller anger `include_full_text` med `limit = 1` i `search_dokument_fulltext`.
+
 #### `search_ledamoter`
 Sök efter ledamöter i Riksdagen.
 
@@ -221,7 +240,7 @@ Sök efter ledamöter i Riksdagen.
 - `parti` (valfritt): Parti (S, M, SD, V, MP, C, L, KD)
 - `valkrets` (valfritt): Valkrets
 - `status` (valfritt): Status (tjänstgörande, tjänstledig, etc.)
-- `limit` (valfritt): Max antal resultat (standard: 50)
+- `limit` (valfritt): Max antal resultat (standard: 10, max: 50)
 
 **Exempel:**
 ```json
@@ -242,7 +261,22 @@ Sök efter dokument från Riksdagen.
 - `organ` (valfritt): Organ (KU, FiU, UU, etc.)
 - `from_date` (valfritt): Från datum (YYYY-MM-DD)
 - `to_date` (valfritt): Till datum (YYYY-MM-DD)
-- `limit` (valfritt): Max antal resultat (standard: 50)
+- `limit` (valfritt): Max antal resultat (standard: 10, max: 50)
+
+#### `search_dokument_fulltext`
+Fulltextsök i cachelagrade dokument och få tydliga utdrag/snippets.
+
+**Parametrar:**
+- `query` (krävs): Sökterm som matchas mot titel, sammanfattning och fulltext
+- `doktyp` (valfritt): Dokumenttyp (mot, prop, bet, skr, ...)
+- `rm` (valfritt): Riksmöte
+- `organ` (valfritt): Utskott/organ
+- `from_date` / `to_date` (valfritt): Datumintervall
+- `limit` (valfritt): Max resultat (standard 10, max 50)
+- `include_full_text` (valfritt): Returnera hela texten (kan bli stora svar)
+- `snippet_length` (valfritt): Längd på utdrag i tecken (standard 280)
+
+> **Obs!** För att skydda klienterna kräver `include_full_text: true` att `limit` sätts till `1`. För flera dokument hämtar du hela texten via `get_dokument_innehall` eller motsvarande `get_*`-verktyg.
 
 #### `search_anforanden`
 Sök efter anföranden i Riksdagen.
@@ -254,7 +288,7 @@ Sök efter anföranden i Riksdagen.
 - `text` (valfritt): Text att söka i anförandet
 - `from_date` (valfritt): Från datum (YYYY-MM-DD)
 - `to_date` (valfritt): Till datum (YYYY-MM-DD)
-- `limit` (valfritt): Max antal resultat (standard: 50)
+- `limit` (valfritt): Max antal resultat (standard: 10, max: 50)
 
 #### `search_voteringar`
 Sök efter voteringar i Riksdagen.
@@ -264,7 +298,7 @@ Sök efter voteringar i Riksdagen.
 - `rm` (valfritt): Riksmöte (t.ex. "2024/25")
 - `from_date` (valfritt): Från datum (YYYY-MM-DD)
 - `to_date` (valfritt): Till datum (YYYY-MM-DD)
-- `limit` (valfritt): Max antal resultat (standard: 50)
+- `limit` (valfritt): Max antal resultat (standard: 10, max: 50)
 
 #### `search_regering`
 Sök i Regeringskansliets dokument.
@@ -275,7 +309,7 @@ Sök i Regeringskansliets dokument.
 - `departement` (valfritt): Departement
 - `from_date` (valfritt): Från datum (YYYY-MM-DD)
 - `to_date` (valfritt): Till datum (YYYY-MM-DD)
-- `limit` (valfritt): Max antal resultat (standard: 50)
+- `limit` (valfritt): Max antal resultat (standard: 10, max: 50)
 
 ### Analysverktyg
 

@@ -30,15 +30,16 @@ Sök ledamöter i riksdagen efter namn, parti, valkrets eller status.
   parti?: string;       // Parti (S, M, SD, V, MP, C, L, KD)
   valkrets?: string;    // Valkrets
   status?: string;      // Status (tjänstgörande, tjänstledig, etc.)
-  limit?: number;       // Max antal resultat (default: 50)
+  summary?: boolean;    // Returnera kortfattat svar
+  fields?: string[];    // Lista över fält att inkludera
+  limit?: number;       // Max antal resultat (default: 10, max: 50)
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "data": [
+  "items": [
     {
       "intressent_id": "0123456789012",
       "fornamn": "Anna",
@@ -48,10 +49,9 @@ Sök ledamöter i riksdagen efter namn, parti, valkrets eller status.
       "status": "Tjänstgörande riksdagsledamot"
     }
   ],
-  "meta": {
-    "count": 1,
-    "limit": 50
-  }
+  "count": 1,
+  "limit": 10,
+  "has_more": false
 }
 ```
 
@@ -85,15 +85,16 @@ Sök riksdagsdokument som motioner, propositioner, betänkanden.
   organ?: string;       // Organ (t.ex. KU, FiU, UU)
   from_date?: string;   // Från datum (YYYY-MM-DD)
   to_date?: string;     // Till datum (YYYY-MM-DD)
-  limit?: number;       // Max antal resultat (default: 50)
+  summary?: boolean;    // Returnera endast ID/titel och utdrag
+  fields?: string[];    // Lista över fält att inkludera
+  limit?: number;       // Max antal resultat (default: 10, max: 50)
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "data": [
+  "items": [
     {
       "dok_id": "HB01234",
       "doktyp": "mot",
@@ -101,14 +102,12 @@ Sök riksdagsdokument som motioner, propositioner, betänkanden.
       "titel": "Motion om klimatåtgärder",
       "datum": "2024-10-15",
       "organ": "MJU",
-      "dokumentnamn": "Motion 2024/25:1234"
+      "summary_preview": "Kort textutdrag…"
     }
   ],
-  "meta": {
-    "count": 1,
-    "totalMatches": 145,
-    "hasMore": true
-  }
+  "count": 1,
+  "limit": 10,
+  "has_more": false
 }
 ```
 
@@ -138,6 +137,64 @@ Sök riksdagsdokument som motioner, propositioner, betänkanden.
 
 ---
 
+### 🔍 search_dokument_fulltext
+
+Fulltextsökning mot titel, sammanfattning och cachelagrad fulltext. Returnerar alltid ett tydligt textutdrag (snippet) och kan även bifoga hela texten.
+
+**Parameters:**
+```typescript
+{
+  query: string;            // REQUIRED: sökterm (minst 2 tecken)
+  doktyp?: string;          // Dokumenttyp (mot, prop, bet, skr, ...)
+  rm?: string;              // Riksmöte
+  organ?: string;           // Organ/utskott (KU, FiU, UU, ...)
+  from_date?: string;       // Från datum (YYYY-MM-DD)
+  to_date?: string;         // Till datum (YYYY-MM-DD)
+  summary?: boolean;        // Returnera endast ID, titel och snippet
+  fields?: string[];        // Lista över fält att inkludera
+  limit?: number;           // Max resultat (default 10, max 50)
+  include_full_text?: boolean; // Returnera hela texten (kan bli stora svar)
+  snippet_length?: number;  // Antal tecken i utdrag (default 280)
+}
+```
+
+> Obs! `include_full_text: true` kräver `limit: 1`. Använd `get_dokument_innehall` om du behöver hela texten för flera dokument.
+
+**Response:**
+```json
+{
+  "query": "klimatmål",
+  "snippet_length": 280,
+  "include_full_text": false,
+  "items": [
+    {
+      "dok_id": "HB01234",
+      "titel": "Motion om långsiktiga klimatmål",
+      "doktyp": "mot",
+      "rm": "2024/25",
+      "datum": "2024-10-15",
+      "organ": "MJU",
+      "snippet": "…motionen föreslår att klimatmålen skärps för att uppnå netto noll utsläpp…",
+      "summary": "Motion om klimatomställning",
+      "dokument_url_text": "https://data.riksdagen.se/...",
+      "has_cached_text": true,
+      "score": 37
+    }
+  ],
+  "count": 2,
+  "limit": 10,
+  "has_more": false,
+  "analysis": "Hittade 2 dokument som matchar \"klimatmål\" med fulltextsökning."
+}
+```
+
+**Tips:**
+- Använd `include_full_text: true` om du vill få hela dokumenttexten direkt i svaret.
+- Justera `snippet_length` (t.ex. 500) när du behöver längre utdrag till redaktionellt arbete.
+- Kombinera med `doktyp` eller `rm` för att begränsa sökträffen.
+
+---
+
 ### 🔍 search_anforanden
 
 Sök anföranden i riksdagens debatter.
@@ -151,28 +208,29 @@ Sök anföranden i riksdagens debatter.
   text?: string;        // Text att söka i anförandet
   from_date?: string;   // Från datum (YYYY-MM-DD)
   to_date?: string;     // Till datum (YYYY-MM-DD)
-  limit?: number;       // Max antal resultat (default: 50)
+  summary?: boolean;    // Returnera kort utdrag
+  fields?: string[];    // Lista över fält
+  limit?: number;       // Max antal resultat (default: 10, max: 50)
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "data": [
+  "items": [
     {
       "anforande_id": "H901234",
       "talare": "Anna Andersson (S)",
       "parti": "S",
-      "debattnamn": "Klimatpolitik",
-      "anforandetext": "Herr talman! Vi står inför...",
+      "avsnittsrubrik": "Klimatpolitik",
+      "text_preview": "Herr talman! Vi står inför...",
       "datum": "2024-10-20",
       "dok_id": "HB01234"
     }
   ],
-  "meta": {
-    "count": 1
-  }
+  "count": 1,
+  "limit": 10,
+  "has_more": false
 }
 ```
 
@@ -194,31 +252,26 @@ Sök voteringshistorik i riksdagen.
   titel?: string;       // Titel att söka efter
   from_date?: string;   // Från datum (YYYY-MM-DD)
   to_date?: string;     // Till datum (YYYY-MM-DD)
-  limit?: number;       // Max antal resultat (default: 50)
+  summary?: boolean;    // Returnera kort resultat
+  fields?: string[];    // Lista över fält
+  limit?: number;       // Max antal resultat (default: 10, max: 50)
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "data": [
+  "items": [
     {
       "votering_id": "H901ABC123",
       "rm": "2024/25",
       "titel": "Klimatlag",
-      "datum": "2024-10-25",
-      "resultat": {
-        "ja": 175,
-        "nej": 152,
-        "avstående": 22,
-        "frånvarande": 0
-      }
+      "datum": "2024-10-25"
     }
   ],
-  "meta": {
-    "count": 1
-  }
+  "count": 1,
+  "limit": 10,
+  "has_more": false
 }
 ```
 
@@ -242,27 +295,27 @@ Sök regeringsdokument (pressmeddelanden, SOU, direktiv).
   departement?: string;   // Departement
   from_date?: string;     // Från datum (YYYY-MM-DD)
   to_date?: string;       // Till datum (YYYY-MM-DD)
-  limit?: number;         // Max antal resultat (default: 50)
+  summary?: boolean;      // Returnera kort resultat
+  fields?: string[];      // Lista över fält
+  limit?: number;         // Max antal resultat (default: 10, max: 50)
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "data": [
+  "items": [
     {
-      "id": "PM-2024-1234",
+      "document_id": "PM-2024-1234",
       "titel": "Ny klimatsatsning presenterad",
       "departement": "Klimat- och näringslivsdepartementet",
-      "datum": "2024-10-30",
-      "typ": "pressmeddelande"
+      "publicerad_datum": "2024-10-30",
+      "innehall_preview": "Pressmeddelandet i korthet…"
     }
   ],
-  "meta": {
-    "count": 1,
-    "dataType": "pressmeddelanden"
-  }
+  "count": 1,
+  "limit": 10,
+  "has_more": false
 }
 ```
 
@@ -1041,9 +1094,13 @@ Exempel: "2024-10-15"
 
 ### Limit Parameter
 Alla verktyg med resultat-listor har `limit` parameter:
-- Default: 50
-- Max: 500
+- Default: 10
+- Max: 50
 - Min: 1
+
+### Summary & Fields
+- `summary` (bool, valfri): Returnerar korta resultat (ID, titel/namn, preview). Använd när du bara behöver översikt.
+- `fields` (string[], valfri): Begränsa svar till specifika fält. `id`-fältet för respektive verktyg skickas alltid med.
 
 ### Riksmöte Format
 Riksmöten anges som: `YYYY/YY`

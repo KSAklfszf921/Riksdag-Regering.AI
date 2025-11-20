@@ -3,6 +3,7 @@
  */
 
 import { getSupabase } from '../utils/supabase.js';
+import { resolveLimit, DEFAULT_LIMIT } from '../utils/limits.js';
 import { z } from 'zod';
 import fetch from 'node-fetch';
 import { resolveData, fetchRiksdagenDokument, saveJsonToStorage } from '../utils/resolver.js';
@@ -147,16 +148,17 @@ export async function getLedamot(args: z.infer<typeof getLedamotSchema>) {
 export const getMotionerSchema = z.object({
   rm: z.string().optional().describe('Riksmöte (t.ex. 2024/25)'),
   parti: z.string().optional().describe('Parti'),
-  limit: z.number().optional().default(50).describe('Max antal resultat'),
+  limit: z.number().optional().default(DEFAULT_LIMIT).describe('Max antal resultat'),
 });
 
 export async function getMotioner(args: z.infer<typeof getMotionerSchema>) {
   const supabase = getSupabase();
+  const limit = resolveLimit(args.limit);
 
   let query = supabase
     .from('riksdagen_motioner')
     .select('*')
-    .limit(args.limit || 50)
+    .limit(limit)
     .order('datum', { ascending: false });
 
   if (args.rm) {
@@ -175,7 +177,7 @@ export async function getMotioner(args: z.infer<typeof getMotionerSchema>) {
       .from('riksdagen_dokument')
       .select('*')
       .eq('doktyp', 'mot')
-      .limit(args.limit || 50)
+      .limit(limit)
       .order('datum', { ascending: false });
 
     if (args.rm) {
@@ -207,16 +209,17 @@ export async function getMotioner(args: z.infer<typeof getMotionerSchema>) {
  */
 export const getPropositionerSchema = z.object({
   rm: z.string().optional().describe('Riksmöte (t.ex. 2024/25)'),
-  limit: z.number().optional().default(50).describe('Max antal resultat'),
+  limit: z.number().optional().default(DEFAULT_LIMIT).describe('Max antal resultat'),
 });
 
 export async function getPropositioner(args: z.infer<typeof getPropositionerSchema>) {
   const supabase = getSupabase();
+  const limit = resolveLimit(args.limit);
 
   let query = supabase
     .from('riksdagen_propositioner')
     .select('*')
-    .limit(args.limit || 50)
+    .limit(limit)
     .order('datum', { ascending: false });
 
   if (args.rm) {
@@ -231,7 +234,7 @@ export async function getPropositioner(args: z.infer<typeof getPropositionerSche
       .from('riksdagen_dokument')
       .select('*')
       .eq('doktyp', 'prop')
-      .limit(args.limit || 50)
+      .limit(limit)
       .order('datum', { ascending: false });
 
     if (args.rm) {
@@ -264,16 +267,17 @@ export async function getPropositioner(args: z.infer<typeof getPropositionerSche
 export const getBetankandenSchema = z.object({
   utskott: z.string().optional().describe('Utskott (t.ex. KU, FiU)'),
   rm: z.string().optional().describe('Riksmöte (t.ex. 2024/25)'),
-  limit: z.number().optional().default(50).describe('Max antal resultat'),
+  limit: z.number().optional().default(DEFAULT_LIMIT).describe('Max antal resultat'),
 });
 
 export async function getBetankanden(args: z.infer<typeof getBetankandenSchema>) {
   const supabase = getSupabase();
+  const limit = resolveLimit(args.limit);
 
   let query = supabase
     .from('riksdagen_betankanden')
     .select('*')
-    .limit(args.limit || 50)
+    .limit(limit)
     .order('datum', { ascending: false });
 
   if (args.utskott) {
@@ -288,11 +292,11 @@ export async function getBetankanden(args: z.infer<typeof getBetankandenSchema>)
 
   if (error) {
     // Fallback till riksdagen_dokument
-    let fallbackQuery = supabase
-      .from('riksdagen_dokument')
-      .select('*')
-      .eq('doktyp', 'bet')
-      .limit(args.limit || 50)
+      let fallbackQuery = supabase
+        .from('riksdagen_dokument')
+        .select('*')
+        .eq('doktyp', 'bet')
+        .limit(limit)
       .order('datum', { ascending: false });
 
     if (args.utskott) {
@@ -328,16 +332,17 @@ export async function getBetankanden(args: z.infer<typeof getBetankandenSchema>)
  */
 export const getFragorSchema = z.object({
   typ: z.enum(['skriftlig', 'muntlig']).optional().describe('Typ av fråga'),
-  limit: z.number().optional().default(50).describe('Max antal resultat'),
+  limit: z.number().optional().default(DEFAULT_LIMIT).describe('Max antal resultat'),
 });
 
 export async function getFragor(args: z.infer<typeof getFragorSchema>) {
   const supabase = getSupabase();
+  const limit = resolveLimit(args.limit);
 
   let query = supabase
     .from('riksdagen_fragor')
     .select('*')
-    .limit(args.limit || 50)
+    .limit(limit)
     .order('publicerad_datum', { ascending: false });
 
   if (args.typ) {
@@ -360,17 +365,18 @@ export async function getFragor(args: z.infer<typeof getFragorSchema>) {
  * Hämta interpellationer
  */
 export const getInterpellationerSchema = z.object({
-  limit: z.number().optional().default(50).describe('Max antal resultat'),
+  limit: z.number().optional().default(DEFAULT_LIMIT).describe('Max antal resultat'),
   from_date: z.string().optional().describe('Från datum (YYYY-MM-DD)'),
 });
 
 export async function getInterpellationer(args: z.infer<typeof getInterpellationerSchema>) {
   const supabase = getSupabase();
+  const limit = resolveLimit(args.limit);
 
   let query = supabase
     .from('riksdagen_interpellationer')
     .select('*')
-    .limit(args.limit || 50)
+    .limit(limit)
     .order('publicerad_datum', { ascending: false });
 
   if (args.from_date) {
