@@ -154,48 +154,6 @@ Kopiera SQL och kör i Supabase SQL Editor för att skapa OAuth-tabeller.
 
 ## ⚙️ Konfiguration
 
-### Remote Server (rekommenderad)
-
-Hostad på Render och alltid uppdaterad. Använd den publika endpointen utan installation:
-
-```
-https://riksdag-regering-ai.onrender.com/mcp
-```
-
-- Ingen lokal installation krävs
-- Fungerar direkt i Claude, Cursor, VS Code, Windsurf och andra MCP-kompatibla klienter
-- Alltid senaste versionen från `main`
-- Kostnadsfritt
-
-#### Claude Desktop / Claude Web
-Lägg till servern i `claude_desktop_config.json` (Desktop) eller motsvarande inställningar:
-
-```json
-{
-  "mcpServers": {
-    "riksdag-regering": {
-      "type": "http",
-      "url": "https://riksdag-regering-ai.onrender.com/mcp"
-    }
-  }
-}
-```
-
-#### VS Code / Cline / Cursor
-
-```json
-{
-  "mcp.servers": {
-    "riksdag-regering": {
-      "type": "http",
-      "url": "https://riksdag-regering-ai.onrender.com/mcp"
-    }
-  }
-}
-```
-
-När din klient startar ansluter den automatiskt och listar alla verktyg. Ingen API-nyckel krävs för den publika instansen.
-
 ### Local STDIO (Claude Desktop)
 
 För lokal användning med Claude Desktop:

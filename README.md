@@ -16,12 +16,15 @@
 
 ### Alternativ 1: Remote Server (Rekommenderat)
 
-Använd den hostade servern utan installation - alltid uppdaterad och tillgänglig!
+Använd Render-instansen direkt – alltid uppdaterad och verifierad:
 
-**Fördelar:**
-- ✅ Ingen installation eller konfiguration
-- ✅ Alltid senaste versionen
-- ✅ Fungerar direkt i alla MCP-klienter
+```
+https://riksdag-regering-ai.onrender.com/mcp
+```
+
+- Ingen installation eller konfiguration
+- Fungerar i Claude, ChatGPT, Cursor, VS Code, Windsurf m.fl.
+- Ger senaste versionen från `main`
 
 #### För Claude Desktop (macOS/Windows)
 
@@ -156,37 +159,13 @@ npm start
 
 ## Funktioner
 
-### 📊 27 Verktyg
+Servern exponerar omkring 35 verktyg. Fyra exempel:
 
-Servern erbjuder drygt 35 olika verktyg som kan fördelas i 5 kategorier. Här här några exempel:
+- `search_dokument_fulltext` – fulltextsökning i cachelagrade dokument med snippets och streaming.
+- `analyze_votering` – sammanfattar röstresultat, närvaro och partiutfall för en votering.
+- `compare_riksdag_regering` – korsrefererar riksdags- och regeringsdokument för att hitta kopplingar.
+- `get_pressmeddelande` – hämtar pressmeddelanden med metadata, innehåll och nedladdningslänkar.
 
-**Sökverktyg (5)**
-- `search_ledamoter` - Sök ledamöter efter namn, parti, valkrets
-- `search_dokument` - Sök riksdagsdokument (motioner, propositioner, betänkanden)
-- `search_anforanden` - Hitta anföranden och debatter
-
-**Analysverktyg (6)**
-- `analyze_partifordelning` - Analysera partifördelning i riksdagen
-- `analyze_votering` - Detaljerad voteringsstatistik
-- `analyze_ledamot` - Ledamots aktivitetsanalys (anföranden, röster, dokument)
-
-**Jämförelseverktyg (4)**
-- `compare_ledamoter` - Jämför två ledamöters aktiviteter
-- `compare_parti_rostning` - Jämför partiers röstmönster
-- `compare_riksdag_regering` - Korsreferera riksdags- och regeringsdokument
-
-
-**Aggregeringsverktyg (6)**
-- `get_top_lists` - Topplistor för talare, partier, utskott
-- `analyze_riksmote` - Analysera specifikt riksmöte
-- `recent_aktivitet` - Senaste parlamentariska aktiviteten
-- `global_search` - Sök över alla datakällor samtidigt
-
-
-**Detaljverktyg (6)**
-- `get_ledamot` - Fullständig ledamotsprofil med uppdrag
-- `get_dokument` - Komplett dokumentinformation
-- `get_motioner` - Hämta motioner från riksdagen
 
 ###  4 Resurser
 
