@@ -71,24 +71,56 @@ export async function resolveData<T>(options: ResolverOptions<T>): Promise<{ dat
  * Helper för att hämta Riksdagens dokument live vid behov.
  */
 export async function fetchRiksdagenDokument(dokId: string): Promise<any | null> {
-  const url = `https://data.riksdagen.se/dokument/${dokId}.json`;
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Fel vid livehämtning från Riksdagen: ${response.statusText}`);
+  const normalizedId = dokId.trim();
+  const encodedId = encodeURIComponent(normalizedId);
+  const endpoints = [
+    `https://data.riksdagen.se/dokumentstatus/${encodedId}.json`,
+    `https://data.riksdagen.se/dokument/${encodedId}.json`,
+  ];
+
+  const errors: string[] = [];
+
+  for (const url of endpoints) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      if (response.status === 404) {
+        errors.push(`404 ${response.statusText} (${url})`);
+        continue;
+      }
+      errors.push(`${response.status} ${response.statusText} (${url})`);
+      continue;
+    }
+
+    const json: any = await response.json();
+    const doc =
+      json?.dokumentstatus?.dokument ||
+      json?.dokgrupp?.dokument?.[0] ||
+      json?.dokument?.[0] ||
+      null;
+
+    if (!doc) {
+      errors.push(`saknar dokument i svaret (${url})`);
+      continue;
+    }
+
+    const text =
+      doc?.dokumentstatus?.dokument?.dokumenttext ||
+      doc?.dokumentstatus?.dokument?.dokutskrift ||
+      doc?.dokumenttext ||
+      doc?.dokutskrift ||
+      '';
+
+    return {
+      ...doc,
+      text,
+    };
   }
 
-  const json: any = await response.json();
-  const doc = json?.dokgrupp?.dokument?.[0] ?? null;
-  if (!doc) return null;
-  const text =
-    doc?.dokumentstatus?.dokument?.dokumenttext ||
-    doc?.dokumentstatus?.dokument?.dokutskrift ||
-    doc?.dokumenttext ||
-    '';
-  return {
-    ...doc,
-    text,
-  };
+  if (errors.length === endpoints.length) {
+    return null;
+  }
+
+  throw new Error(`Fel vid livehämtning från Riksdagen: ${errors.join('; ')}`);
 }
 
 export async function saveJsonToStorage(bucket: string, path: string, payload: unknown) {

@@ -176,72 +176,56 @@ export async function searchDokumentFulltext(args: z.infer<typeof searchDokument
     throw new Error('include_full_text kan endast användas när limit = 1. Hämta annars hela texten via get_dokument_innehall eller liknande verktyg.');
   }
 
-  let query = supabase
-    .from('riksdagen_dokument')
-    .select('*')
-    .limit(limit)
-    .order('datum', { ascending: false });
-
-  if (args.doktyp) {
-    query = query.eq('doktyp', args.doktyp);
-  }
-
-  if (args.rm) {
-    query = query.eq('rm', args.rm);
-  }
-
-  if (args.organ) {
-    query = query.eq('organ', args.organ);
-  }
-
-  if (args.from_date) {
-    query = query.gte('datum', args.from_date);
-  }
-
-  if (args.to_date) {
-    query = query.lte('datum', args.to_date);
-  }
-
-  const orFilters = [
-    `titel.ilike.%${sanitizedQuery}%`,
-    `summary.ilike.%${sanitizedQuery}%`,
-    `text.ilike.%${sanitizedQuery}%`,
-  ];
-
-  query = query.or(orFilters.join(','));
-
-  let { data, error } = await query;
-
-  // Om text-kolumnen saknas i databasen faller vi tillbaka till titel/summary
-  if (error && error.message && error.message.toLowerCase().includes('column') && error.message.includes('text')) {
-    let fallbackQuery = supabase
+  const baseQuery = () => {
+    let query = supabase
       .from('riksdagen_dokument')
       .select('*')
       .limit(limit)
-      .order('datum', { ascending: false })
-      .or(`titel.ilike.%${sanitizedQuery}%,summary.ilike.%${sanitizedQuery}%`);
+      .order('datum', { ascending: false });
 
     if (args.doktyp) {
-      fallbackQuery = fallbackQuery.eq('doktyp', args.doktyp);
+      query = query.eq('doktyp', args.doktyp);
     }
 
     if (args.rm) {
-      fallbackQuery = fallbackQuery.eq('rm', args.rm);
+      query = query.eq('rm', args.rm);
     }
 
     if (args.organ) {
-      fallbackQuery = fallbackQuery.eq('organ', args.organ);
+      query = query.eq('organ', args.organ);
     }
 
     if (args.from_date) {
-      fallbackQuery = fallbackQuery.gte('datum', args.from_date);
+      query = query.gte('datum', args.from_date);
     }
 
     if (args.to_date) {
-      fallbackQuery = fallbackQuery.lte('datum', args.to_date);
+      query = query.lte('datum', args.to_date);
     }
 
-    ({ data, error } = await fallbackQuery);
+    return query;
+  };
+
+  const runSearch = async (columns: string[]) => {
+    const filters = columns.map(col => `${col}.ilike.%${sanitizedQuery}%`).join(',');
+    return baseQuery().or(filters);
+  };
+
+  const executeSearch = async (columns: string[]) => {
+    const { data, error } = await runSearch(columns);
+    return { data, error };
+  };
+
+  let { data, error } = await executeSearch(['titel', 'summary', 'text']);
+
+  // Om summary-kolumnen saknas (nuvarande schema) faller vi tillbaka till titel + text
+  if (error && error.message && error.message.toLowerCase().includes('summary')) {
+    ({ data, error } = await executeSearch(['titel', 'text']));
+  }
+
+  // Om text-kolumnen saknas faller vi tillbaka till endast titel
+  if (error && error.message && error.message.toLowerCase().includes('text')) {
+    ({ data, error } = await executeSearch(['titel']));
   }
 
   if (error) {

@@ -338,6 +338,7 @@ export const getFragorSchema = z.object({
 export async function getFragor(args: z.infer<typeof getFragorSchema>) {
   const supabase = getSupabase();
   const limit = resolveLimit(args.limit);
+  const warnings: string[] = [];
 
   let query = supabase
     .from('riksdagen_fragor')
@@ -346,7 +347,7 @@ export async function getFragor(args: z.infer<typeof getFragorSchema>) {
     .order('publicerad_datum', { ascending: false });
 
   if (args.typ) {
-    query = query.eq('typ', args.typ);
+    warnings.push('typ-filter stöds inte av nuvarande schema och ignoreras.');
   }
 
   const { data, error } = await query;
@@ -358,6 +359,7 @@ export async function getFragor(args: z.infer<typeof getFragorSchema>) {
   return {
     count: data?.length || 0,
     fragor: data || [],
+    meta: warnings.length ? { warnings } : undefined,
   };
 }
 
