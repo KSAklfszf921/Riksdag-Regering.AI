@@ -93,7 +93,7 @@ export async function getLedamot(args: z.infer<typeof getLedamotSchema>) {
     },
     fallbackApi: async () => {
       const response = await fetch(`https://data.riksdagen.se/personlista/?iid=${args.intressent_id}&utformat=json`);
-      const json = await response.json();
+      const json: any = await response.json();
       const person = json?.personlista?.person?.[0];
       if (!person) return null;
       return {
