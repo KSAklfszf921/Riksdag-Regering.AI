@@ -9,6 +9,21 @@ interface CacheEntry<T> {
   ttl: number;
 }
 
+/**
+ * Cache TTL strategies for different data types
+ */
+export const CACHE_STRATEGIES = {
+  ledamoter: 3600000, // 1 hour (changes infrequently)
+  dokument: 300000, // 5 min (new documents can appear)
+  anforanden: 60000, // 1 min (real-time debates)
+  voteringar: 600000, // 10 min (votings are relatively static)
+  historiska: 86400000, // 24 hours (historical data never changes)
+  parti_info: 86400000, // 24 hours (party info rarely changes)
+  images: 604800000, // 7 days (images never change)
+  pdfs: 604800000, // 7 days (PDFs never change)
+  default: 300000, // 5 min (default for unknown types)
+};
+
 export class Cache<T> {
   private cache: Map<string, CacheEntry<T>> = new Map();
   private maxSize: number;

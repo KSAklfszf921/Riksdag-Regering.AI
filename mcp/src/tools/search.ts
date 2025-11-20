@@ -4,6 +4,7 @@
 
 import { getSupabase } from '../utils/supabase.js';
 import { z } from 'zod';
+import { expandPartyAliases } from '../utils/partyAliases.js';
 
 /**
  * Sök efter ledamöter
@@ -30,7 +31,9 @@ export async function searchLedamoter(args: z.infer<typeof searchLedamoterSchema
   }
 
   if (args.parti) {
-    query = query.eq('parti', args.parti.toUpperCase());
+    // Expand party aliases (e.g. 'L' includes both 'L' and 'FP')
+    const partyAliases = expandPartyAliases(args.parti);
+    query = query.in('parti', partyAliases);
   }
 
   if (args.valkrets) {
@@ -139,7 +142,9 @@ export async function searchAnforanden(args: z.infer<typeof searchAnforandenSche
   }
 
   if (args.parti) {
-    query = query.eq('parti', args.parti.toUpperCase());
+    // Expand party aliases (e.g. 'L' includes both 'L' and 'FP')
+    const partyAliases = expandPartyAliases(args.parti);
+    query = query.in('parti', partyAliases);
   }
 
   if (args.debattnamn) {
