@@ -42,12 +42,12 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
     "@supabase/supabase-js": "^2.78.0",
-    "node-fetch": "^3.3.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-rate-limit": "^7.2.0",
     "node-cache": "^5.1.2",
+    "node-fetch": "3.3.2",
     "uuid": "^9.0.1",
     "winston": "^3.13.0",
     "zod": "^3.25.76",
