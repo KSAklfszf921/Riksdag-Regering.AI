@@ -3,6 +3,7 @@
  */
 
 import { getSupabase } from '../utils/supabase.js';
+import { DATA_DICTIONARY } from '../data/dictionary.js';
 
 /**
  * Hämta lista över alla tillgängliga resources
@@ -37,6 +38,12 @@ export async function listResources() {
       uri: 'riksdagen://statistik',
       name: 'Riksdagsstatistik',
       description: 'Sammanställd statistik över Riksdagens verksamhet',
+      mimeType: 'application/json',
+    },
+    {
+      uri: 'docs://data-dictionary',
+      name: 'Begrepp och dataprodukter',
+      description: 'Definitioner, instruktioner och fältbeskrivningar för alla dataset i MCP-servern',
       mimeType: 'application/json',
     },
   ];
@@ -221,6 +228,14 @@ export async function getResource(uri: string) {
                     (voteringarCount || 0) + (pressCount || 0) + (propCount || 0),
           },
         }, null, 2),
+      };
+    }
+
+    case 'docs://data-dictionary': {
+      return {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(DATA_DICTIONARY, null, 2),
       };
     }
 

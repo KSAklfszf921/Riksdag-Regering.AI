@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { getSupabase } from '../utils/supabase.js';
 import { withCache } from '../utils/cache.js';
 import { stripHtml, truncate } from '../utils/helpers.js';
+import { DATA_DICTIONARY } from '../data/dictionary.js';
 
 /**
  * Röstsammanfattning per votering
@@ -142,4 +143,23 @@ export async function getSyncStatus() {
       generated_at: new Date().toISOString(),
     };
   }, 300);
+}
+
+/**
+ * Data dictionary tool
+ */
+export const getDataDictionarySchema = z.object({
+  dataset: z.string().optional().describe('Filtrera på ett dataset-ID, t.ex. riksdagen_dokument'),
+});
+
+export async function getDataDictionary(args: z.infer<typeof getDataDictionarySchema>) {
+  if (args.dataset) {
+    const match = DATA_DICTIONARY.datasets.find(d => d.id === args.dataset);
+    if (!match) {
+      throw new Error(`Dataset ${args.dataset} saknas i dictionaryt`);
+    }
+    return match;
+  }
+
+  return DATA_DICTIONARY;
 }

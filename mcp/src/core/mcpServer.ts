@@ -69,6 +69,8 @@ import {
   summarizePressmeddelandeSchema,
   getSyncStatus,
   getSyncStatusSchema,
+  getDataDictionary,
+  getDataDictionarySchema,
 } from '../tools/insights.js';
 import { logToolCall } from '../utils/telemetry.js';
 
@@ -237,6 +239,11 @@ const TOOL_DEFINITIONS = [
     description: 'Visa senaste status för Riksdagens/Regeringens datapipelines',
     inputSchema: getSyncStatusSchema,
   },
+  {
+    name: 'get_data_dictionary',
+    description: 'Returnerar definitioner och anvisningar för MCP-serverns dataset',
+    inputSchema: getDataDictionarySchema,
+  },
 ];
 
 /**
@@ -315,6 +322,8 @@ async function handleToolCall(name: string, args: any) {
       return await summarizePressmeddelande(args);
     case 'get_sync_status':
       return await getSyncStatus();
+    case 'get_data_dictionary':
+      return await getDataDictionary(args);
 
     default:
       throw new Error(`Okänt verktyg: ${name}`);
