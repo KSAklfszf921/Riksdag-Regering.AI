@@ -158,6 +158,30 @@ npm start
 
 ---
 
+## 🔄 Data Backfill & Population
+
+För att populera databasen med historisk data från Riksdagen och Regeringskansliet, se vår [**Backfill Guide**](./BACKFILL.md).
+
+**Snabbstart:**
+```bash
+# Importera alla tillgängliga data (~10 minuter)
+npx tsx scripts/backfill_supabase.ts --entities=motioner,propositioner,betankanden,votering_ledamoter
+
+# Validera att data importerades korrekt
+npx tsx scripts/validate-backfill.ts
+```
+
+**Inkluderar:**
+- ✅ Motioner och propositioner med organ-kod extrahering
+- ✅ Betänkanden från alla utskott
+- ✅ Individuella röstningsdata per ledamot
+- ✅ Automatisk dubletthantering
+- ✅ Valideringsverktyg
+
+**Status:** 🟢 Backfill-ready - Alla scripts implementerade och testade.
+
+---
+
 ## Funktioner
 
 Servern exponerar omkring 35 verktyg. Fyra exempel:
