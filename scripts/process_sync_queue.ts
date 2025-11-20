@@ -61,6 +61,7 @@ async function processItem(item: any) {
               datum: dokument.datum,
               titel: dokument.titel,
               organ: dokument.organ,
+              text: dokument?.dokumentstatus?.dokument?.dokumenttext || dokument?.dokumenttext || null,
             }),
           });
         }
