@@ -138,6 +138,17 @@
             background: var(--success-color);
         }
 
+        .version-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            background: var(--primary-blue);
+            color: white;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
         .github-link {
             display: inline-flex;
             align-items: center;
@@ -230,6 +241,37 @@
             margin-bottom: 16px;
         }
 
+        /* Hide README's first H1 and banner images */
+        .markdown-content > h1:first-child {
+            display: none;
+        }
+
+        .markdown-content > p:first-of-type img {
+            display: block;
+            max-width: 600px;
+            margin: 0 auto 32px;
+        }
+
+        .markdown-content img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 16px auto;
+        }
+
+        .markdown-content pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        .markdown-content pre code {
+            background: none;
+            padding: 0;
+        }
+
         /* Footer */
         footer {
             background: var(--bg-secondary);
@@ -282,8 +324,26 @@
 
         /* Responsive */
         @media (max-width: 768px) {
+            .header-container {
+                padding: 0 16px;
+            }
+
+            .nav-right {
+                flex-wrap: wrap;
+            }
+
+            .version-badge {
+                order: -1;
+                width: 100%;
+                justify-content: center;
+            }
+
             .content-card {
                 padding: 24px;
+            }
+
+            .markdown-content > p:first-of-type img {
+                max-width: 100%;
             }
         }
 
@@ -318,6 +378,7 @@
                 </div>
             </a>
             <div class="nav-right">
+                <div class="version-badge">v2.0.1</div>
                 <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
                     🌙
                 </button>
