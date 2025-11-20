@@ -62,6 +62,15 @@ import {
   getTopLists, getTopListsSchema,
   globalSearch, globalSearchSchema,
 } from '../tools/aggregate.js';
+import {
+  getVoteringRosterSummary,
+  getVoteringRosterSummarySchema,
+  summarizePressmeddelande,
+  summarizePressmeddelandeSchema,
+  getSyncStatus,
+  getSyncStatusSchema,
+} from '../tools/insights.js';
+import { logToolCall } from '../utils/telemetry.js';
 
 /**
  * Tool definitions - samma för alla transporter
@@ -211,6 +220,23 @@ const TOOL_DEFINITIONS = [
     description: 'Sök över alla tabeller (dokument, anföranden, ledamöter, pressmeddelanden)',
     inputSchema: globalSearchSchema,
   },
+
+  // INSIGHTS
+  {
+    name: 'get_votering_roster_summary',
+    description: 'Summerar röster per parti för en given votering',
+    inputSchema: getVoteringRosterSummarySchema,
+  },
+  {
+    name: 'summarize_pressmeddelande',
+    description: 'Generera en kort sammanfattning av ett pressmeddelande',
+    inputSchema: summarizePressmeddelandeSchema,
+  },
+  {
+    name: 'get_sync_status',
+    description: 'Visa senaste status för Riksdagens/Regeringens datapipelines',
+    inputSchema: getSyncStatusSchema,
+  },
 ];
 
 /**
@@ -282,6 +308,14 @@ async function handleToolCall(name: string, args: any) {
     case 'global_search':
       return await globalSearch(args);
 
+    // Insights
+    case 'get_votering_roster_summary':
+      return await getVoteringRosterSummary(args);
+    case 'summarize_pressmeddelande':
+      return await summarizePressmeddelande(args);
+    case 'get_sync_status':
+      return await getSyncStatus();
+
     default:
       throw new Error(`Okänt verktyg: ${name}`);
   }
@@ -323,8 +357,16 @@ export function createMCPServer(logger?: { error: (msg: string, ...args: any[]) 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
 
+    const start = Date.now();
     try {
       const result = await handleToolCall(name, args as any);
+
+      logToolCall({
+        tool_name: name,
+        status: 'success',
+        duration_ms: Date.now() - start,
+        args: args as Record<string, unknown>,
+      }).catch(() => {});
 
       return {
         content: [
@@ -336,6 +378,14 @@ export function createMCPServer(logger?: { error: (msg: string, ...args: any[]) 
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+
+      logToolCall({
+        tool_name: name,
+        status: 'error',
+        duration_ms: Date.now() - start,
+        error_message: errorMessage,
+        args: args as Record<string, unknown>,
+      }).catch(() => {});
 
       // Använd logger om tillgänglig, annars console.error
       if (logger) {
