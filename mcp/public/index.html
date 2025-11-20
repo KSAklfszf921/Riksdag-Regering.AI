@@ -1,543 +1,66 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Riksdag & Regering MCP Server</title>
-    <meta name="description" content="Model Context Protocol server för Sveriges Riksdag och Regeringskansliet">
-    <link rel="icon" type="image/png" href="https://mb.cision.com/Public/20518/3733746/9c8944283144c24f_800x800ar.png">
-    <link rel="apple-touch-icon" href="https://mb.cision.com/Public/20518/3733746/9c8944283144c24f_800x800ar.png">
-
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --primary-blue: #006AA7;
-            --primary-yellow: #FECC00;
-            --accent-blue: #0080C8;
-            --success-color: #34c759;
-            --danger-color: #ff3b30;
-            --warning-color: #ff9500;
-            --text-primary: #1d1d1f;
-            --text-secondary: #86868b;
-            --bg-primary: #ffffff;
-            --bg-secondary: #fafafa;
-            --bg-tertiary: #f5f5f7;
-            --border-color: #d2d2d7;
-            --code-bg: #f5f5f7;
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
-        }
-
-        [data-theme="dark"] {
-            --text-primary: #f5f5f7;
-            --text-secondary: #a1a1a6;
-            --bg-primary: #1d1d1f;
-            --bg-secondary: #2c2c2e;
-            --bg-tertiary: #3a3a3c;
-            --border-color: #48484a;
-            --code-bg: #2c2c2e;
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            color: var(--text-primary);
-            background-color: var(--bg-primary);
-            font-size: 15px;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        /* Header */
-        header {
-            position: sticky;
-            top: 0;
-            background: var(--bg-primary);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-bottom: 1px solid var(--border-color);
-            padding: 16px 0;
-            z-index: 100;
-            transition: background-color 0.3s, border-color 0.3s;
-        }
-
-        .header-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-            color: var(--text-primary);
-        }
-
-        .logo img {
-            height: 36px;
-            width: auto;
-        }
-
-        .logo-text h1 {
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .theme-toggle {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 8px 12px;
-            cursor: pointer;
-            font-size: 20px;
-            transition: all 0.2s;
-        }
-
-        .theme-toggle:hover {
-            background: var(--bg-tertiary);
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            transition: all 0.2s;
-        }
-
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--success-color);
-        }
-
-        .version-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 6px 12px;
-            background: var(--primary-blue);
-            color: white;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .github-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            background: var(--text-primary);
-            color: var(--bg-primary);
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .github-link:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
-        }
-
-        /* Container */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-        }
-
-        /* Documentation Section */
-        .docs-section {
-            margin: 40px 0;
-            padding-top: 40px;
-        }
-
-        .content-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 40px;
-            margin-bottom: 40px;
-        }
-
-        .markdown-content {
-            line-height: 1.8;
-            color: var(--text-primary);
-        }
-
-        .markdown-content h1,
-        .markdown-content h2,
-        .markdown-content h3 {
-            margin-top: 32px;
-            margin-bottom: 16px;
-            font-weight: 600;
-        }
-
-        .markdown-content h1 {
-            font-size: 32px;
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 12px;
-        }
-
-        .markdown-content h2 {
-            font-size: 24px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
-        }
-
-        .markdown-content h3 {
-            font-size: 20px;
-        }
-
-        .markdown-content a {
-            color: var(--primary-blue);
-            text-decoration: none;
-        }
-
-        .markdown-content a:hover {
-            text-decoration: underline;
-        }
-
-        .markdown-content code {
-            background: var(--code-bg);
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-family: 'SF Mono', Monaco, Menlo, monospace;
-            font-size: 13px;
-        }
-
-        .markdown-content ul,
-        .markdown-content ol {
-            margin-left: 28px;
-            margin-bottom: 16px;
-        }
-
-        /* Hide README's first H1 and banner images */
-        .markdown-content > h1:first-child {
-            display: none;
-        }
-
-        .markdown-content > p:first-of-type img {
-            display: block;
-            max-width: 600px;
-            margin: 0 auto 32px;
-        }
-
-        .markdown-content img {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            margin: 16px auto;
-        }
-
-        .markdown-content pre {
-            background: var(--code-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            overflow-x: auto;
-        }
-
-        .markdown-content pre code {
-            background: none;
-            padding: 0;
-        }
-
-        /* Footer */
-        footer {
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-            padding: 60px 0 40px;
-            margin-top: 80px;
-        }
-
-        .footer-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 40px;
-            margin-bottom: 40px;
-        }
-
-        .footer-column h4 {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .footer-links {
-            list-style: none;
-        }
-
-        .footer-links li {
-            margin-bottom: 12px;
-        }
-
-        .footer-links a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 14px;
-            transition: color 0.2s;
-        }
-
-        .footer-links a:hover {
-            color: var(--primary-blue);
-        }
-
-        .footer-bottom {
-            text-align: center;
-            padding-top: 40px;
-            border-top: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .header-container {
-                padding: 0 16px;
-            }
-
-            .nav-right {
-                flex-wrap: wrap;
-            }
-
-            .version-badge {
-                order: -1;
-                width: 100%;
-                justify-content: center;
-            }
-
-            .content-card {
-                padding: 24px;
-            }
-
-            .markdown-content > p:first-of-type img {
-                max-width: 100%;
-            }
-        }
-
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 60px 20px;
-        }
-
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--border-color);
-            border-top-color: var(--primary-blue);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riksdag & Regering MCP – README</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f7;
+      color: #1d1d1f;
+    }
+    .wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+    .readme-card {
+      background: #fff;
+      border: 1px solid #e4e4e7;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+      min-height: 50vh;
+    }
+    .status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .status small { color: #6b7280; }
+    .readme-card h1:first-child { margin-top: 0; }
+    a { color: #006AA7; }
+  </style>
 </head>
 <body>
-    <header>
-        <div class="header-container">
-            <a href="/" class="logo">
-                <img src="https://mb.cision.com/Public/20518/3733746/9c8944283144c24f_800x800ar.png" alt="Riksdagen">
-                <div class="logo-text">
-                    <h1>MCP Server</h1>
-                </div>
-            </a>
-            <div class="nav-right">
-                <div class="version-badge">v2.0.1</div>
-                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
-                    🌙
-                </button>
-                <div class="status-badge" id="status-badge">
-                    <span class="status-dot"></span>
-                    <span id="status-text">Online</span>
-                </div>
-                <a href="https://github.com/KSAklfszf921/Riksdag-Regering-MCP" target="_blank" class="github-link">
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                    </svg>
-                    GitHub
-                </a>
-            </div>
-        </div>
-    </header>
+  <div class="wrapper">
+    <div class="status">
+      <h1>Riksdag & Regering MCP</h1>
+      <small>Innehållet nedan speglar README i GitHub-repot</small>
+    </div>
+    <div id="readme" class="readme-card">Laddar README…</div>
+  </div>
 
-    <main>
-        <div class="container">
-            <!-- Documentation Section -->
-            <div class="docs-section">
-                <div id="content">
-                    <div class="loading">
-                        <div class="loading-spinner"></div>
-                        <p style="color: var(--text-secondary);">Laddar dokumentation...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <footer>
-        <div class="container">
-            <div class="footer-grid">
-                <div class="footer-column">
-                    <h4>Dokumentation</h4>
-                    <ul class="footer-links">
-                        <li><a href="#installation">Installation</a></li>
-                        <li><a href="https://github.com/KSAklfszf921/Riksdag-Regering-MCP#funktioner">Funktioner</a></li>
-                        <li><a href="https://github.com/KSAklfszf921/Riksdag-Regering-MCP/blob/main/API_REFERENCE.md">API Referens</a></li>
-                        <li><a href="https://github.com/KSAklfszf921/Riksdag-Regering-MCP/blob/main/TUTORIALS.md">Tutorials</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h4>Community</h4>
-                    <ul class="footer-links">
-                        <li><a href="https://github.com/KSAklfszf921/Riksdag-Regering-MCP" target="_blank">GitHub</a></li>
-                        <li><a href="https://github.com/KSAklfszf921/Riksdag-Regering-MCP/issues" target="_blank">Issues</a></li>
-                        <li><a href="https://github.com/KSAklfszf921/Riksdag-Regering-MCP/discussions" target="_blank">Diskussioner</a></li>
-                        <li><a href="https://registry.modelcontextprotocol.io/" target="_blank">MCP Registry</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h4>Resources</h4>
-                    <ul class="footer-links">
-                        <li><a href="/health" target="_blank">Server Health</a></li>
-                        <li><a href="https://data.riksdagen.se" target="_blank">Riksdagens API</a></li>
-                        <li><a href="https://g0v.se" target="_blank">g0v.se</a></li>
-                        <li><a href="https://modelcontextprotocol.io/" target="_blank">MCP Protocol</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h4>Legal</h4>
-                    <ul class="footer-links">
-                        <li><a href="https://github.com/KSAklfszf921/Riksdag-Regering-MCP/blob/main/LICENSE" target="_blank">MIT License</a></li>
-                        <li><a href="mailto:isak.skogstad@me.com">Kontakt</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p><strong>Riksdag & Regering MCP Server</strong> v2.0.1</p>
-                <p style="margin-top: 8px; opacity: 0.7;">En öppen MCP-server för svensk demokratidata</p>
-            </div>
-        </div>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script>
-        // Theme Toggle
-        const themeToggle = document.getElementById('theme-toggle');
-        const html = document.documentElement;
-
-        // Load saved theme
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        html.setAttribute('data-theme', savedTheme);
-        themeToggle.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
-
-        themeToggle.addEventListener('click', () => {
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
-        });
-
-        // Server Status Check
-        async function checkServerStatus() {
-            try {
-                const response = await fetch('/health');
-                const data = await response.json();
-                const badge = document.getElementById('status-badge');
-                const statusText = document.getElementById('status-text');
-
-                if (data.status === 'ok') {
-                    statusText.textContent = 'Online';
-                } else {
-                    statusText.textContent = 'Offline';
-                }
-            } catch (error) {
-                document.getElementById('status-text').textContent = 'Offline';
-            }
-        }
-
-        // Load README
-        async function loadReadme() {
-            const contentEl = document.getElementById('content');
-            const GITHUB_README_URL = 'https://raw.githubusercontent.com/KSAklfszf921/Riksdag-Regering-MCP/main/README.md';
-
-            // Check cache
-            const cached = sessionStorage.getItem('readme_content');
-            if (cached) {
-                const data = JSON.parse(cached);
-                if (Date.now() - data.timestamp < 10 * 60 * 1000) {
-                    contentEl.innerHTML = `<div class="content-card markdown-content">${data.html}</div>`;
-                    return;
-                }
-            }
-
-            try {
-                const response = await fetch(GITHUB_README_URL);
-                if (!response.ok) throw new Error('Failed to load README');
-
-                const markdown = await response.text();
-                const html = marked.parse(markdown);
-
-                sessionStorage.setItem('readme_content', JSON.stringify({
-                    html,
-                    timestamp: Date.now()
-                }));
-
-                contentEl.innerHTML = `<div class="content-card markdown-content">${html}</div>`;
-            } catch (error) {
-                contentEl.innerHTML = `
-                    <div class="content-card" style="background: #fff3cd; border-color: #ffc107;">
-                        <strong style="color: #856404;">Kunde inte ladda README från GitHub</strong>
-                        <p style="color: #856404; margin-top: 8px;">
-                            <a href="https://github.com/KSAklfszf921/Riksdag-Regering-MCP" target="_blank" style="color: var(--primary-blue);">Besök GitHub-repot direkt</a>
-                        </p>
-                    </div>
-                `;
-            }
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            checkServerStatus();
-            loadReadme();
-            setInterval(checkServerStatus, 30000);
-        });
-    </script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    const READ_ME_URL = 'https://raw.githubusercontent.com/KSAklfszf921/Riksdag-Regering-MCP/main/README.md';
+    async function loadReadme() {
+      const container = document.getElementById('readme');
+      try {
+        const response = await fetch(READ_ME_URL, { cache: 'no-cache' });
+        if (!response.ok) throw new Error('README kunde inte hämtas');
+        const markdown = await response.text();
+        container.innerHTML = marked.parse(markdown);
+      } catch (error) {
+        container.innerHTML = `<p style="color:#b91c1c;">${error.message}</p><p><a href="${READ_ME_URL}" target="_blank">Öppna README direkt</a></p>`;
+      }
+    }
+    loadReadme();
+  </script>
 </body>
 </html>
