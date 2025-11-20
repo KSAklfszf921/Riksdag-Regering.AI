@@ -1,5 +1,4 @@
-
-<img width="600" height="300" alt="Skärmavbild 2025-11-20 kl  08 58 33" src="https://github.com/user-attachments/assets/0307658a-6a2a-48e9-b128-70e90057cd76" />
+<img width="1360" height="497" alt="Skärmavbild 2025-11-20 kl  09 01 01" src="https://github.com/user-attachments/assets/2d1daf29-80f0-4404-b01a-4cc3705bcf69" />
 
 # Riksdag & Regering MCP-server  
 
