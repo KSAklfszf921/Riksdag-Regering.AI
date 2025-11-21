@@ -381,6 +381,7 @@ export function createMCPServer(logger?: { error: (msg: string, ...args: any[]) 
     const toolsWithJsonSchema = TOOL_DEFINITIONS.map(tool => ({
       name: tool.name,
       description: tool.description,
+      // @ts-ignore - Zod type compatibility issue
       inputSchema: zodToJsonSchema(tool.inputSchema, {
         target: 'jsonSchema7',
         $refStrategy: 'none'
