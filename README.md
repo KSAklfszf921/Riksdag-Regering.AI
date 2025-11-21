@@ -142,13 +142,6 @@ npm start
 
 ---
 
-## Funktioner
-
-Servern är helt frikopplad från Supabase och använder enbart öppna API:er:
-
-- **Riksdagen:** `https://data.riksdagen.se` (dokument, ledamöter, anföranden)
-- **Regeringskansliet:** `https://g0v.se/api` (propositioner, pressmeddelanden, SOU)
-
 ### ⚒️ Tillgängliga verktyg
 
 **Sökverktyg**
@@ -238,19 +231,3 @@ MIT License - Se [LICENSE](LICENSE) för detaljer.
 
 ### Kontakt
 - **Email:** [isak.skogstad@me.com](mailto:isak.skogstad@me.com)
-
-**Version 2.0.0** | MCP JSON-RPC 2.0 | Remote HTTP Support | 27 Tools | 4 Resources | 5 Prompts
-**Kalender & rapporter**
-- `get_calendar_events` – Lista kammaren/utskotten med `from`, `tom`, `akt`, `org`.
-- `get_voting_group` – Hämta grupperade voteringar per parti/valkrets.
-- `list_reports` / `fetch_report` – Lista och hämta Riksdagens rapporter (ledamotsstatistik, diarium, könsstatistik).
-
-### 🧪 Snabbtest
-
-Starta först servern (`npm run build && node dist/server.js`) och kör sedan:
-
-```bash
-MCP_URL='http://localhost:3000/mcp' node scripts/test-new-tools.mjs
-```
-
-Scriptet testar `search_voteringar`, `get_calendar_events` och `fetch_report` utan krav på autentisering.
