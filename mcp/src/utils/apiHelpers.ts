@@ -159,11 +159,12 @@ export class RiksdagenApiError extends Error {
 }
 
 /**
- * Safe API fetch with error handling
+ * Safe API fetch with error handling and retry logic
  */
 export async function safeFetch(
   url: string,
-  headers?: Record<string, string>
+  headers?: Record<string, string>,
+  maxRetries: number = 3
 ): Promise<any> {
   const defaultHeaders = {
     'User-Agent': 'riksdag-regering-mcp/2.1',
@@ -171,11 +172,47 @@ export async function safeFetch(
     ...headers,
   };
 
-  const response = await fetch(url, { headers: defaultHeaders });
+  let lastError: Error | undefined;
 
-  if (!response.ok) {
-    throw new RiksdagenApiError(response.status, response.statusText, url);
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, { headers: defaultHeaders });
+
+      if (!response.ok) {
+        // Don't retry on client errors (4xx), only server errors (5xx) and network errors
+        if (response.status >= 400 && response.status < 500) {
+          throw new RiksdagenApiError(response.status, response.statusText, url);
+        }
+
+        // Server error - retry with backoff
+        if (attempt < maxRetries) {
+          const delayMs = Math.min(1000 * Math.pow(2, attempt), 10000); // Max 10s
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          continue;
+        }
+
+        throw new RiksdagenApiError(response.status, response.statusText, url);
+      }
+
+      return await response.json();
+    } catch (error) {
+      lastError = error as Error;
+
+      // Don't retry RiksdagenApiError with 4xx status codes
+      if (error instanceof RiksdagenApiError && error.statusCode < 500) {
+        throw error;
+      }
+
+      // Retry on network errors
+      if (attempt < maxRetries) {
+        const delayMs = Math.min(1000 * Math.pow(2, attempt), 10000);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        continue;
+      }
+
+      throw lastError;
+    }
   }
 
-  return response.json();
+  throw lastError || new Error(`Failed to fetch ${url} after ${maxRetries + 1} attempts`);
 }

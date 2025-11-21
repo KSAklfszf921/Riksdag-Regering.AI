@@ -7,14 +7,15 @@ Denna guide hjälper dig att installera och konfigurera MCP servern steg för st
 ### 1. Förutsättningar
 
 Kontrollera att du har:
-- **Node.js** version 18 eller senare
+- **Node.js** version 20 eller senare
 - **npm** version 9 eller senare
 - **Git** för att klona projektet
-- Tillgång till **Supabase-databasen** med Riksdag/Regering data
+
+**API-Only Mode:** Inga databas-credentials behövs! All data hämtas live från Riksdagen och Regeringskansliet.
 
 Verifiera dina installationer:
 ```bash
-node --version  # Ska visa v18.0.0 eller senare
+node --version  # Ska visa v20.0.0 eller senare
 npm --version   # Ska visa 9.0.0 eller senare
 ```
 
@@ -47,9 +48,11 @@ npm install -g @riksdag-regering/mcp-server
 
 ### 3. Konfiguration
 
-#### Skapa .env fil
+#### Ingen konfiguration krävs!
 
-Kopiera exempel-filen och fyll i dina uppgifter:
+**API-Only Mode:** MCP-servern fungerar direkt utan några environment variables eller credentials.
+
+Om du vill anpassa server-inställningar (valfritt):
 
 ```bash
 cp .env.example .env
@@ -58,17 +61,11 @@ cp .env.example .env
 Redigera `.env` med din texteditor:
 
 ```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key-here
+# Alla inställningar är valfria
+PORT=3000
+NODE_ENV=production
+LOG_LEVEL=info
 ```
-
-**Hämta Supabase credentials:**
-
-1. Gå till din Supabase dashboard
-2. Välj ditt projekt
-3. Klicka på "Settings" → "API"
-4. Kopiera "Project URL" till `SUPABASE_URL`
-5. Kopiera "anon public" key till `SUPABASE_ANON_KEY`
 
 ### 4. Konfigurera MCP Client
 
@@ -91,11 +88,7 @@ Lägg till följande konfiguration:
   "mcpServers": {
     "riksdag-regering": {
       "command": "node",
-      "args": ["/FULL/PATH/TO/Riksdag-Regering.AI/mcp/dist/index.js"],
-      "env": {
-        "SUPABASE_URL": "https://your-project.supabase.co",
-        "SUPABASE_ANON_KEY": "your-anon-key-here"
-      }
+      "args": ["/FULL/PATH/TO/Riksdag-Regering-MCP/mcp/dist/index.js"]
     }
   }
 }
@@ -119,11 +112,7 @@ Lägg till i ditt projekt `.vscode/settings.json`:
   "mcp.servers": {
     "riksdag-regering": {
       "command": "node",
-      "args": ["/path/to/Riksdag-Regering.AI/mcp/dist/index.js"],
-      "env": {
-        "SUPABASE_URL": "https://your-project.supabase.co",
-        "SUPABASE_ANON_KEY": "your-anon-key-here"
-      }
+      "args": ["/path/to/Riksdag-Regering-MCP/mcp/dist/index.js"]
     }
   }
 }
@@ -173,12 +162,13 @@ npm install
 npm run build
 ```
 
-### Problem: "SUPABASE_URL and SUPABASE_ANON_KEY environment variables must be set"
+### Problem: "Server kraschar vid start"
 
 **Lösning:**
-1. Kontrollera att `.env` filen finns i `mcp/` katalogen
-2. Kontrollera att miljövariablerna är korrekt satta i MCP konfigurationen
-3. Starta om Claude Desktop efter att ha uppdaterat konfigurationen
+1. Kontrollera att Node.js version är 20 eller senare: `node --version`
+2. Verifiera att projektet är byggt: `npm run build`
+3. Kontrollera logs för specifika felmeddelanden
+4. Starta om Claude Desktop efter att ha uppdaterat konfigurationen
 
 ### Problem: "Command failed with exit code 1"
 
@@ -193,13 +183,13 @@ npm run build
    node /path/to/mcp/dist/index.js
    ```
 
-### Problem: "Cannot access Supabase database"
+### Problem: "Timeout vid API-anrop"
 
 **Lösning:**
-1. Verifiera dina Supabase credentials
-2. Kontrollera att ditt projekt är aktivt i Supabase
-3. Kolla att RLS (Row Level Security) policies tillåter läsning
-4. Testa anslutningen med Supabase klient
+1. Kontrollera din internetanslutning
+2. Verifiera att Riksdagens API är tillgängligt: https://data.riksdagen.se
+3. Kontrollera att g0v.se API fungerar
+4. API:erna kan ibland vara långsamma - öka timeout-värden om nödvändigt
 
 ### Problem: TypeScript compilation errors
 

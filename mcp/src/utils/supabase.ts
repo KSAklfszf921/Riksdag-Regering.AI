@@ -13,6 +13,7 @@ import {
   fetchVoteringarDirect
 } from './riksdagenApi.js';
 import { fetchG0vDocuments } from './g0vApi.js';
+import { withCache, withLongCache } from './cache.js';
 
 export type SupabaseClient = ReturnType<typeof createPseudoClient>;
 
@@ -162,28 +163,39 @@ async function fetchTableData<T>(
   orFilters: OrFilter,
   limit?: number
 ): Promise<T[]> {
-  switch (table) {
-    case 'riksdagen_dokument':
-      return filterDokument(await fetchDokumentDirect(buildDokumentParams(filters, limit)), filters, orFilters) as T[];
-    case 'riksdagen_motioner':
-      return filterDokument(await fetchDokumentDirect({ doktyp: 'mot', ...buildDokumentParams(filters, limit) }), filters, orFilters) as T[];
-    case 'riksdagen_propositioner':
-      return filterDokument(await fetchDokumentDirect({ doktyp: 'prop', ...buildDokumentParams(filters, limit) }), filters, orFilters) as T[];
-    case 'riksdagen_betankanden':
-      return filterDokument(await fetchDokumentDirect({ doktyp: 'bet', ...buildDokumentParams(filters, limit) }), filters, orFilters) as T[];
-    case 'riksdagen_anforanden':
-      return filterLocal(await fetchAnforandenDirect(buildAnforandeParams(filters, orFilters, limit)).then(r => r.data), filters, orFilters, limit) as T[];
-    case 'riksdagen_ledamoter':
+  // Skapa cache-nyckel baserad på tabell, filter och limit
+  const cacheKey = `table:${table}:${JSON.stringify(filters)}:${JSON.stringify(orFilters)}:${limit}`;
+
+  // Använd längre cache för ledamöter (statisk data)
+  if (table === 'riksdagen_ledamoter') {
+    return withLongCache(cacheKey, async () => {
       return filterLocal(await fetchLedamoterDirect(buildLedamotParams(filters, limit)).then(r => r.data), filters, orFilters, limit) as T[];
-    case 'riksdagen_voteringar':
-      return filterLocal(await fetchVoteringarDirect(buildVoteringParams(filters, limit)).then(r => r.data), filters, orFilters, limit) as T[];
-    case 'regeringskansliet_pressmeddelanden':
-      return filterLocal(await fetchG0vDocuments('pressmeddelanden', { limit: limit ?? 50 }), filters, orFilters, limit) as T[];
-    case 'regeringskansliet_propositioner':
-      return filterLocal(await fetchG0vDocuments('propositioner', { limit: limit ?? 50 }), filters, orFilters, limit) as T[];
-    default:
-      return [];
+    });
   }
+
+  // Använd standard cache för övrig data
+  return withCache(cacheKey, async () => {
+    switch (table) {
+      case 'riksdagen_dokument':
+        return filterDokument(await fetchDokumentDirect(buildDokumentParams(filters, limit)), filters, orFilters) as T[];
+      case 'riksdagen_motioner':
+        return filterDokument(await fetchDokumentDirect({ doktyp: 'mot', ...buildDokumentParams(filters, limit) }), filters, orFilters) as T[];
+      case 'riksdagen_propositioner':
+        return filterDokument(await fetchDokumentDirect({ doktyp: 'prop', ...buildDokumentParams(filters, limit) }), filters, orFilters) as T[];
+      case 'riksdagen_betankanden':
+        return filterDokument(await fetchDokumentDirect({ doktyp: 'bet', ...buildDokumentParams(filters, limit) }), filters, orFilters) as T[];
+      case 'riksdagen_anforanden':
+        return filterLocal(await fetchAnforandenDirect(buildAnforandeParams(filters, orFilters, limit)).then(r => r.data), filters, orFilters, limit) as T[];
+      case 'riksdagen_voteringar':
+        return filterLocal(await fetchVoteringarDirect(buildVoteringParams(filters, limit)).then(r => r.data), filters, orFilters, limit) as T[];
+      case 'regeringskansliet_pressmeddelanden':
+        return filterLocal(await fetchG0vDocuments('pressmeddelanden', { limit: limit ?? 50 }), filters, orFilters, limit) as T[];
+      case 'regeringskansliet_propositioner':
+        return filterLocal(await fetchG0vDocuments('propositioner', { limit: limit ?? 50 }), filters, orFilters, limit) as T[];
+      default:
+        return [];
+    }
+  }, 300); // 5 minuter cache
 }
 
 function buildDokumentParams(filters: Filter[], limit?: number) {

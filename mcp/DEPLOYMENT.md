@@ -14,17 +14,17 @@ Denna guide beskriver hur du deployer MCP servern som en remote HTTP server till
 
 ## 🎯 Förberedelser
 
-### 1. Supabase Database
+### 1. API-Only Architecture
 
-Innan deployment behöver du en Supabase-databas med data från Riksdagen och Regeringskansliet.
+**Inga credentials behövs!** MCP-servern använder nu en API-only arkitektur och hämtar all data direkt från:
+- **Riksdagen:** data.riksdagen.se
+- **Regeringskansliet:** g0v.se
 
-**Hämta credentials:**
-1. Gå till [Supabase Dashboard](https://app.supabase.com)
-2. Välj ditt projekt
-3. Gå till Settings > API
-4. Kopiera:
-   - `Project URL` (SUPABASE_URL)
-   - `anon/public` key (SUPABASE_ANON_KEY)
+Detta innebär:
+- ✅ Ingen databas att konfigurera
+- ✅ Inga API-nycklar att hantera
+- ✅ Snabb deployment utan beroenden
+- ✅ Automatisk caching för bättre prestanda
 
 ### 2. GitHub Repository
 
@@ -68,24 +68,22 @@ Render detekterar automatiskt `render.yaml`, men du kan också konfigurera manue
 **Instance:**
 - **Plan:** Free (eller Starter för production)
 
-### Steg 4: Sätt Environment Variables
+### Steg 4: Sätt Environment Variables (Valfritt)
 
-I Render dashboard, lägg till följande environment variables:
+I Render dashboard kan du lägga till följande environment variables om önskat:
 
 ```bash
-# Obligatoriska
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key-here
-
 # Valfria
 NODE_ENV=production
 LOG_LEVEL=info
+PORT=3000
 API_KEY=your-secret-api-key  # För autentisering (rekommenderas)
 ```
 
 **Säkerhetstips:**
-- Markera `SUPABASE_ANON_KEY` och `API_KEY` som "Secret"
+- Markera `API_KEY` som "Secret" om du använder den
 - Använd en stark, slumpmässig API_KEY
+- **Inga Supabase-credentials behövs!**
 
 ### Steg 5: Deploy
 
@@ -154,11 +152,10 @@ docker build -t riksdag-regering-mcp:latest .
 # Med .env fil
 docker run -p 3000:3000 --env-file .env riksdag-regering-mcp:latest
 
-# Eller med environment variables
+# Eller med environment variables (alla valfria)
 docker run -p 3000:3000 \
-  -e SUPABASE_URL=https://your-project.supabase.co \
-  -e SUPABASE_ANON_KEY=your-key \
   -e NODE_ENV=production \
+  -e LOG_LEVEL=info \
   -e API_KEY=your-api-key \
   riksdag-regering-mcp:latest
 ```
@@ -183,7 +180,7 @@ gcloud run deploy riksdag-regering-mcp \
   --platform managed \
   --region europe-north1 \
   --allow-unauthenticated \
-  --set-env-vars SUPABASE_URL=https://...,SUPABASE_ANON_KEY=...
+  --set-env-vars NODE_ENV=production,LOG_LEVEL=info
 ```
 
 ### AWS ECS/Fargate
@@ -214,7 +211,7 @@ az containerapp create \
   --image your-registry/riksdag-regering-mcp:latest \
   --target-port 3000 \
   --ingress external \
-  --env-vars SUPABASE_URL=... SUPABASE_ANON_KEY=...
+  --env-vars NODE_ENV=production LOG_LEVEL=info
 ```
 
 ### DigitalOcean App Platform
@@ -228,14 +225,11 @@ az containerapp create \
 
 ## 🔐 Miljövariabler
 
-### Obligatoriska
+### Alla Miljövariabler är Valfria!
 
-| Variable | Beskrivning | Exempel |
-|----------|-------------|---------|
-| `SUPABASE_URL` | Supabase project URL | `https://xxx.supabase.co` |
-| `SUPABASE_ANON_KEY` | Supabase anon/public key | `eyJhbGc...` |
+**API-Only Mode:** Servern kräver inga credentials eftersom all data hämtas direkt från öppna API:er.
 
-### Valfria
+### Valfria Konfigurationsvariabler
 
 | Variable | Beskrivning | Default | Exempel |
 |----------|-------------|---------|---------|
@@ -293,13 +287,18 @@ Alla cloud providers (Render, Cloud Run, etc.) tillhandahåller automatiskt HTTP
 
 ### Servern startar inte
 
-**Problem:** `Error: Missing SUPABASE_URL`
+**Problem:** Servern startar inte eller visar fel
 
-**Lösning:** Sätt environment variables i Render dashboard:
+**Lösning:** Kontrollera logs för specifika felmeddelanden:
 ```bash
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-key
+# Render: Dashboard > Service > Logs
+# Docker: docker logs <container-id>
 ```
+
+Vanliga orsaker:
+- Port redan i bruk
+- Otillräckligt minne
+- Node.js version (kräver Node 20+)
 
 ### 401 Unauthorized
 
@@ -326,9 +325,9 @@ gcloud logging read "resource.type=cloud_run_revision" --limit 50
 ```
 
 **Vanliga orsaker:**
-- Fel Supabase credentials
-- Databasanslutning misslyckades
-- Saknade tabeller i databasen
+- API rate limiting från Riksdagen/g0v
+- Nätverksanslutningsproblem
+- Timeout vid långsamma API-anrop
 
 ### Rate Limit Exceeded
 
@@ -389,14 +388,17 @@ Servern använder NodeCache för att cache:
 - `list-tools` results (5 min)
 - `list-resources` results (5 min)
 
-### Database Optimization
+### API Rate Limiting
 
-Säkerställ index på Supabase tabeller:
-```sql
-CREATE INDEX idx_ledamoter_parti ON ledamoter(parti);
-CREATE INDEX idx_dokument_doktyp ON dokument(doktyp);
-CREATE INDEX idx_dokument_datum ON dokument(datum);
-```
+Servern har inbyggd hantering för API rate limits:
+- Automatisk retry med exponentiell backoff
+- Caching av ofta efterfrågade data
+- Respekterar rate limits från Riksdagen och g0v
+
+**Tips:**
+- Använd cache för ofta hämtad data
+- Implementera egen caching i klientapplikationen
+- Begränsa parallella API-anrop
 
 ### Scaling
 
@@ -430,7 +432,8 @@ CREATE INDEX idx_dokument_datum ON dokument(datum);
 - [Render Documentation](https://render.com/docs)
 - [Docker Documentation](https://docs.docker.com)
 - [MCP Protocol Spec](https://modelcontextprotocol.io)
-- [Supabase Documentation](https://supabase.com/docs)
+- [Riksdagens API](https://data.riksdagen.se)
+- [g0v.se API](https://g0v.se)
 
 ---
 

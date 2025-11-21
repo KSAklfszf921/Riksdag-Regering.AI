@@ -26,22 +26,7 @@
       "transport": {
         "type": "stdio"
       },
-      "environmentVariables": [
-        {
-          "name": "SUPABASE_URL",
-          "description": "Supabase project URL (optional - defaults to public instance)",
-          "isRequired": false,
-          "isSecret": false,
-          "placeholder": "https://your-project.supabase.co"
-        },
-        {
-          "name": "SUPABASE_ANON_KEY",
-          "description": "Supabase anonymous key (optional - defaults to public instance)",
-          "isRequired": false,
-          "isSecret": true,
-          "placeholder": "your-anon-key"
-        }
-      ]
+      "environmentVariables": []
     }
   ],
   "remotes": [

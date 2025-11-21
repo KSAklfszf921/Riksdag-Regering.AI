@@ -65,9 +65,10 @@ En professionell Model Context Protocol (MCP) server för att hämta, söka, ana
 
 ### Förutsättningar
 
-- Node.js 18 eller senare
+- Node.js 20 eller senare
 - npm eller yarn
-- Tillgång till en Supabase-databas med data från Riksdagen och Regeringskansliet
+
+**Observera:** Sedan version 2.0 använder MCP-servern **endast** direkta API-anrop till Riksdagen och Regeringskansliet. Ingen databas eller externa tjänster krävs!
 
 ### Steg 1: Installera paketet
 
@@ -82,20 +83,23 @@ npm install
 npm run build
 ```
 
-### Steg 2: Konfigurera miljövariabler
+### Steg 2: Konfigurera miljövariabler (valfritt)
 
-Kopiera `.env.example` till `.env` och fyll i dina Supabase-uppgifter:
+För HTTP deployment kan du konfigurera server-inställningar:
 
 ```bash
 cp .env.example .env
 ```
 
-Redigera `.env`:
+Redigera `.env` vid behov:
 
 ```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key-here
+PORT=3000
+NODE_ENV=production
+LOG_LEVEL=info
 ```
+
+**Inga Supabase-credentials krävs!** All data hämtas live från öppna API:er.
 
 ## 🚀 Deployment
 
@@ -114,11 +118,11 @@ Denna server kan deployas som en remote HTTP server till molnet för enkel integ
    - Anslut GitHub repository
    - Render detekterar `render.yaml` automatiskt
 
-3. **Konfigurera Environment Variables**
+3. **Konfigurera Environment Variables (valfritt)**
    ```
-   SUPABASE_URL=your-url
-   SUPABASE_ANON_KEY=your-key
-   SUPABASE_SERVICE_ROLE_KEY=your-service-key
+   PORT=3000
+   NODE_ENV=production
+   LOG_LEVEL=info
    ```
 
 4. **Deploy**
@@ -143,14 +147,13 @@ Se [DEPLOYMENT.md](./DEPLOYMENT.md) för detaljer om:
 - Azure App Service
 - Digital Ocean
 
-### Database Setup
+### API-Only Architecture
 
-Innan deployment, kör SQL-migration i Supabase:
-```bash
-cat src/database/migrations/001_create_oauth_tables.sql
-```
-
-Kopiera SQL och kör i Supabase SQL Editor för att skapa OAuth-tabeller.
+MCP-servern använder nu en **API-only arkitektur**:
+- ✅ Inga databas-credentials behövs
+- ✅ All data hämtas live från Riksdagen och Regeringskansliet
+- ✅ Automatisk caching för bättre prestanda
+- ✅ Ingen setup av externa tjänster krävs
 
 ## ⚙️ Konfiguration
 
@@ -170,11 +173,7 @@ För att använda MCP servern med Claude Desktop, lägg till följande i din kon
   "mcpServers": {
     "riksdag-regering": {
       "command": "node",
-      "args": ["/path/to/Riksdag-Regering.AI/mcp/dist/index.js"],
-      "env": {
-        "SUPABASE_URL": "https://your-project.supabase.co",
-        "SUPABASE_ANON_KEY": "your-anon-key-here"
-      }
+      "args": ["/path/to/Riksdag-Regering-MCP/mcp/dist/index.js"]
     }
   }
 }
@@ -189,11 +188,7 @@ För Cline i VS Code, lägg till i `.vscode/settings.json`:
   "mcp.servers": {
     "riksdag-regering": {
       "command": "node",
-      "args": ["/path/to/Riksdag-Regering.AI/mcp/dist/index.js"],
-      "env": {
-        "SUPABASE_URL": "https://your-project.supabase.co",
-        "SUPABASE_ANON_KEY": "your-anon-key-here"
-      }
+      "args": ["/path/to/Riksdag-Regering-MCP/mcp/dist/index.js"]
     }
   }
 }
@@ -513,4 +508,3 @@ För frågor eller problem, öppna ett issue på GitHub eller kontakta projektet
 - [Riksdagens öppna data](https://data.riksdagen.se/)
 - [g0v.se](https://g0v.se/)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
-- [Supabase](https://supabase.com/)
