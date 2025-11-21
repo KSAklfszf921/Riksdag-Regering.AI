@@ -17,7 +17,6 @@ import {
 import winston from 'winston';
 import NodeCache from 'node-cache';
 
-import { initSupabase } from './utils/supabase.js';
 import { createMCPServer } from './core/mcpServer.js';
 import { getSyncStatus } from './tools/insights.js';
 
@@ -675,10 +674,6 @@ function createApp() {
  */
 async function main() {
   try {
-    // Initialize Supabase
-    logger.info('Initializing Supabase connection...');
-    initSupabase();
-
     // Create and start Express server
     const app = createApp();
 

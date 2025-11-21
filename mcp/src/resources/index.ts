@@ -96,7 +96,7 @@ export async function getResource(uri: string) {
 
       if (error) throw new Error(`Fel vid hämtning av partier: ${error.message}`);
 
-      const partier = [...new Set(data?.map(l => l.parti).filter(Boolean))].sort();
+      const partier: string[] = [...new Set((data || []).map(l => String(l.parti)).filter(Boolean))].sort() as string[];
 
       // Räkna ledamöter per parti
       const partiStats: Record<string, number> = {};
@@ -126,7 +126,7 @@ export async function getResource(uri: string) {
 
       if (error) throw new Error(`Fel vid hämtning av dokumenttyper: ${error.message}`);
 
-      const typer = [...new Set(data?.map(d => d.doktyp).filter(Boolean))].sort();
+      const typer: string[] = [...new Set((data || []).map(d => String(d.doktyp)).filter(Boolean))].sort() as string[];
 
       // Räkna dokument per typ
       const typStats: Record<string, number> = {};

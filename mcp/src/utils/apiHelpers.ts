@@ -2,6 +2,7 @@
  * Helper functions for API response normalization
  * Handles single object vs array responses from Riksdagen API
  */
+import { ProxyAgent } from 'undici';
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -26,7 +27,7 @@ export function normalizeApiResponse(
 
   if (!list) return [];
 
-  const hits = parseInt(list['@antal'] || list['@hits'] || '0');
+  const hits = parseInt(list['@antal'] || list['@hits'] || list['@traffar'] || '0');
 
   if (hits === 0) {
     return [];
@@ -59,7 +60,7 @@ export function extractPaginationMeta(data: any, listKey: string): {
     return { hits: 0, page: 1, hasMore: false };
   }
 
-  const hits = parseInt(list['@hits'] || list['@antal'] || '0');
+  const hits = parseInt(list['@hits'] || list['@antal'] || list['@traffar'] || '0');
   const page = parseInt(list['@sida'] || '1');
   const nextPage = list['@nasta_sida'];
 
@@ -158,6 +159,18 @@ export class RiksdagenApiError extends Error {
   }
 }
 
+let proxyAgent: ProxyAgent | undefined | null = null;
+
+function getProxyAgent() {
+  if (proxyAgent !== null) return proxyAgent;
+
+  const proxyUrl =
+    process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
+
+  proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
+  return proxyAgent;
+}
+
 /**
  * Safe API fetch with error handling
  */
@@ -171,7 +184,11 @@ export async function safeFetch(
     ...headers,
   };
 
-  const response = await fetch(url, { headers: defaultHeaders });
+  const response = await fetch(url, {
+    headers: defaultHeaders,
+    // Honour outbound proxy configuration if present in the environment.
+    dispatcher: getProxyAgent(),
+  });
 
   if (!response.ok) {
     throw new RiksdagenApiError(response.status, response.statusText, url);

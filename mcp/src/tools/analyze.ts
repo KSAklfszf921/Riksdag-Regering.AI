@@ -90,13 +90,14 @@ export async function analyzeVotering(args: z.infer<typeof analyzeVoteringSchema
 
   let partiAnalys: Record<string, any> = {};
   if (roster && roster.length > 0) {
-    const grouped = groupBy(roster, 'parti');
+    const grouped = groupBy(roster as any[], 'parti') as Record<string, any[]>;
 
     for (const [parti, votes] of Object.entries(grouped)) {
-      const jaRoster = votes.filter(v => v.rost === 'Ja').length;
-      const nejRoster = votes.filter(v => v.rost === 'Nej').length;
-      const avstarRoster = votes.filter(v => v.rost === 'Avstår').length;
-      const franvarandeRoster = votes.filter(v => v.rost === 'Frånvarande').length;
+      const voteList = votes as any[];
+      const jaRoster = voteList.filter(v => v.rost === 'Ja').length;
+      const nejRoster = voteList.filter(v => v.rost === 'Nej').length;
+      const avstarRoster = voteList.filter(v => v.rost === 'Avstår').length;
+      const franvarandeRoster = voteList.filter(v => v.rost === 'Frånvarande').length;
 
       partiAnalys[parti] = {
         ja: jaRoster,

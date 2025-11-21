@@ -3,7 +3,6 @@
  */
 
 import fetch from 'node-fetch';
-import { getSupabase } from './supabase.js';
 
 interface ResolverOptions<T> {
   supabaseQuery: () => Promise<T | null>;
@@ -124,15 +123,7 @@ export async function fetchRiksdagenDokument(dokId: string): Promise<any | null>
 }
 
 export async function saveJsonToStorage(bucket: string, path: string, payload: unknown) {
-  try {
-    const supabase = getSupabase();
-    await supabase.storage.from(bucket).upload(path, JSON.stringify(payload), {
-      contentType: 'application/json',
-      upsert: true,
-    });
-  } catch (error) {
-    console.warn(`Kunde inte spara data i bucket ${bucket}:`, (error as Error).message);
-  }
+  console.warn(`Supabase storage är inaktiverat - sparar inte ${bucket}/${path}.`);
 }
 const maxLiveFetches = parseInt(process.env.MAX_LIVE_FETCHES_PER_MINUTE || '30', 10);
 const liveFetchWindowMs = 60_000;

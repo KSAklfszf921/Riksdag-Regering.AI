@@ -61,7 +61,15 @@ export async function fetchG0vDocuments(
   await rateLimiter.waitForToken();
 
   const url = `${G0V_API_BASE}/${type}.json`;
-  const data = await safeFetch(url);
+
+  let data: G0vDocument[];
+
+  try {
+    data = await safeFetch(url);
+  } catch (error) {
+    console.warn(`G0V fetch failed for ${type}: ${String(error)}. Returning empty result set.`);
+    return [];
+  }
 
   let documents: G0vDocument[] = data;
 
