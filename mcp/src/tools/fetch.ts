@@ -1,424 +1,155 @@
 /**
- * Verktyg för att hämta specifika dokument och data
+ * Hämtningsverktyg baserade på öppna API:er
  */
 
-import { getSupabase } from '../utils/supabase.js';
 import { z } from 'zod';
-import fetch from 'node-fetch';
-import { resolveData, fetchRiksdagenDokument, saveJsonToStorage } from '../utils/resolver.js';
-import { logDataMiss } from '../utils/telemetry.js';
+import {
+  fetchDokumentDirect,
+  fetchLedamoterDirect,
+} from '../utils/riksdagenApi.js';
 import { normalizeLimit } from '../utils/helpers.js';
+import { safeFetch } from '../utils/apiHelpers.js';
 
-/**
- * Hämta ett specifikt dokument med alla detaljer
- */
+const RIKSDAG_API_BASE = 'https://data.riksdagen.se';
+
+async function fetchDocumentById(dokId: string) {
+  const url = `${RIKSDAG_API_BASE}/dokument/${dokId}.json`;
+  try {
+    const data = await safeFetch(url);
+    return data?.dokumentstatus?.dokument ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchText(url?: string | null): Promise<string | null> {
+  if (!url) return null;
+  const absoluteUrl = url.startsWith('http') ? url : `https:${url}`;
+  const response = await fetch(absoluteUrl, {
+    headers: { 'User-Agent': 'Wget/1.21 (riksdag-regering-mcp)' },
+  });
+  if (!response.ok) {
+    return null;
+  }
+  return await response.text();
+}
+
 export const getDokumentSchema = z.object({
-  dok_id: z.string().describe('Dokument ID'),
+  dok_id: z.string().min(2).describe('Dokument ID, t.ex. H901FiU1'),
 });
 
 export async function getDokument(args: z.infer<typeof getDokumentSchema>) {
-  const supabase = getSupabase();
-
-  const { data, source, fetchedAt } = await resolveData({
-    supabaseQuery: async () => {
-      const { data, error } = await supabase
-        .from('riksdagen_dokument')
-        .select('*')
-        .eq('dok_id', args.dok_id)
-        .single();
-
-      if (error) {
-        return null;
-      }
-      return data || null;
-    },
-    fallbackApi: async () => {
-      return await fetchRiksdagenDokument(args.dok_id);
-    },
-    persist: async (liveData) => {
-      const mapped = {
-        dok_id: liveData.dok_id,
-        doktyp: liveData.doktyp,
-        rm: liveData.rm,
-        beteckning: liveData.beteckning,
-        datum: liveData.datum,
-        titel: liveData.titel,
-        organ: liveData.organ,
-      };
-      await supabase.from('riksdagen_dokument').upsert(mapped, { onConflict: 'dok_id' });
-      await saveJsonToStorage('riksdagen-dokument', `${args.dok_id}.json`, liveData);
-    },
-    onMiss: async () => {
-      await logDataMiss({
-        entity: 'riksdagen_dokument',
-        identifier: args.dok_id,
-        reason: 'saknas i supabase',
-      });
-    },
-  });
-
-  if (!data) {
-    throw new Error(`Dokument med ID ${args.dok_id} hittades inte`);
+  const dokument = await fetchDocumentById(args.dok_id);
+  if (!dokument) {
+    throw new Error(`Dokument ${args.dok_id} hittades inte i Riksdagens API.`);
   }
 
-  const dokument = data;
+  const text = await fetchText(dokument.dokument_url_text || dokument.dokument_url_html);
 
   return {
-    dokument,
-    summary: `${dokument.doktyp} ${dokument.beteckning}: ${dokument.titel}`,
-    source,
-    fetchedAt,
+    dok_id: dokument.dok_id,
+    titel: dokument.titel,
+    datum: dokument.datum,
+    doktyp: dokument.doktyp,
+    rm: dokument.rm,
+    organ: dokument.organ,
+    summary: dokument.summary,
+    text,
+    attachments: dokument.filbilaga?.fil || [],
+    url: dokument.dokument_url_html ? `https:${dokument.dokument_url_html}` : dokument.relurl,
   };
 }
 
-/**
- * Hämta en ledamot med fullständig information
- */
 export const getLedamotSchema = z.object({
   intressent_id: z.string().describe('Ledamotens intressent ID'),
 });
 
 export async function getLedamot(args: z.infer<typeof getLedamotSchema>) {
-  const supabase = getSupabase();
-
-  const { data: ledamot, source, fetchedAt } = await resolveData({
-    supabaseQuery: async () => {
-      const { data, error } = await supabase
-        .from('riksdagen_ledamoter')
-        .select('*')
-        .eq('intressent_id', args.intressent_id)
-        .single();
-
-      if (error) return null;
-      return data || null;
-    },
-    fallbackApi: async () => {
-      const response = await fetch(`https://data.riksdagen.se/personlista/?iid=${args.intressent_id}&utformat=json`);
-      const json: any = await response.json();
-      const person = json?.personlista?.person?.[0];
-      if (!person) return null;
-      return {
-        intressent_id: person.intressent_id,
-        tilltalsnamn: person.tilltalsnamn,
-        fornamn: person.fornamn,
-        efternamn: person.efternamn,
-        parti: person.parti,
-        valkrets: person.valkrets,
-        status: person.status,
-        bild_url: person.bild_url,
-      };
-    },
-    persist: async (data) => {
-      await supabase.from('riksdagen_ledamoter').upsert(data, { onConflict: 'intressent_id' });
-    },
-    onMiss: async () => {
-      await logDataMiss({
-        entity: 'riksdagen_ledamoter',
-        identifier: args.intressent_id,
-        reason: 'saknas i supabase',
-      });
-    },
-  });
-
-  if (!ledamot) {
-    throw new Error(`Ledamot med ID ${args.intressent_id} hittades inte`);
+  const response = await fetchLedamoterDirect({ iid: args.intressent_id, sz: 1 });
+  if (response.data.length === 0) {
+    throw new Error(`Ledamot ${args.intressent_id} hittades inte.`);
   }
-
-  // Hämta uppdrag om tabellen finns
-  const { data: uppdrag } = await supabase
-    .from('riksdagen_ledamoter_uppdrag')
-    .select('*')
-    .eq('intressent_id', args.intressent_id)
-    .order('uppdrag_fran', { ascending: false });
-
-  const namn = (ledamot.tilltalsnamn || ledamot.fornamn || '').trim();
-
+  const person = response.data[0];
   return {
-    ledamot,
-    uppdrag: uppdrag || [],
-    summary: `${namn ? `${namn} ` : ''}${ledamot.efternamn} (${ledamot.parti}), ${ledamot.valkrets || 'okänd valkrets'}`,
-    source,
-    fetchedAt,
+    intressent_id: person.intressent_id,
+    namn: `${person.tilltalsnamn} ${person.efternamn}`.trim(),
+    parti: person.parti,
+    valkrets: person.valkrets,
+    status: person.status,
+    bild_url: person.bild_url_max || person.bild_url_192,
+    uppdrag: person.personuppdrag?.uppdrag || [],
+    biografi: person.personuppgift?.uppgift || [],
   };
 }
 
-/**
- * Hämta motioner
- */
+function buildDokumentFetcher(doktyp: string) {
+  return async function fetcher(args: { rm?: string; organ?: string; limit?: number }) {
+    const limit = normalizeLimit(args.limit, 50);
+    const result = await fetchDokumentDirect({
+      doktyp,
+      rm: args.rm,
+      organ: args.organ,
+      sz: limit,
+    });
+
+    const dokument = result.data.map((doc) => ({
+      dok_id: doc.dok_id,
+      titel: doc.titel,
+      datum: doc.datum,
+      rm: doc.rm,
+      organ: doc.organ,
+      summary: doc.summary,
+      url: doc.dokument_url_html ? `https:${doc.dokument_url_html}` : doc.relurl,
+    }));
+
+    return {
+      count: result.hits,
+      dokument,
+    };
+  };
+}
+
 export const getMotionerSchema = z.object({
-  rm: z.string().optional().describe('Riksmöte (t.ex. 2024/25)'),
-  parti: z.string().optional().describe('Parti'),
-  limit: z.number().min(1).max(200).optional().default(50).describe('Max antal resultat'),
+  rm: z.string().optional(),
+  limit: z.number().min(1).max(200).optional(),
 });
+export const getMotioner = buildDokumentFetcher('mot');
 
-export async function getMotioner(args: z.infer<typeof getMotionerSchema>) {
-  const supabase = getSupabase();
-
-  const limit = normalizeLimit(args.limit, 50);
-
-  let query = supabase
-    .from('riksdagen_motioner')
-    .select('*')
-    .limit(limit)
-    .order('datum', { ascending: false });
-
-  if (args.rm) {
-    query = query.eq('rm', args.rm);
-  }
-
-  if (args.parti) {
-    query = query.ilike('beteckning', `%${args.parti}%`);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    // Om tabellen inte finns, använd riksdagen_dokument istället
-    let fallbackQuery = supabase
-      .from('riksdagen_dokument')
-      .select('*')
-      .eq('doktyp', 'mot')
-      .limit(limit)
-      .order('datum', { ascending: false });
-
-    if (args.rm) {
-      fallbackQuery = fallbackQuery.eq('rm', args.rm);
-    }
-
-    const { data: fallbackData, error: fallbackError } = await fallbackQuery;
-
-    if (fallbackError) {
-      throw new Error(`Fel vid hämtning av motioner: ${fallbackError.message}`);
-    }
-
-    return {
-      count: fallbackData?.length || 0,
-      motioner: fallbackData || [],
-      source: 'riksdagen_dokument',
-    };
-  }
-
-  return {
-    count: data?.length || 0,
-    motioner: data || [],
-    source: 'riksdagen_motioner',
-  };
-}
-
-/**
- * Hämta propositioner från Riksdagen
- */
 export const getPropositionerSchema = z.object({
-  rm: z.string().optional().describe('Riksmöte (t.ex. 2024/25)'),
-  limit: z.number().min(1).max(200).optional().default(50).describe('Max antal resultat'),
+  rm: z.string().optional(),
+  limit: z.number().min(1).max(200).optional(),
 });
+export const getPropositioner = buildDokumentFetcher('prop');
 
-export async function getPropositioner(args: z.infer<typeof getPropositionerSchema>) {
-  const supabase = getSupabase();
-
-  const limit = normalizeLimit(args.limit, 50);
-
-  let query = supabase
-    .from('riksdagen_propositioner')
-    .select('*')
-    .limit(limit)
-    .order('datum', { ascending: false });
-
-  if (args.rm) {
-    query = query.eq('rm', args.rm);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    // Fallback till riksdagen_dokument
-    let fallbackQuery = supabase
-      .from('riksdagen_dokument')
-      .select('*')
-      .eq('doktyp', 'prop')
-      .limit(limit)
-      .order('datum', { ascending: false });
-
-    if (args.rm) {
-      fallbackQuery = fallbackQuery.eq('rm', args.rm);
-    }
-
-    const { data: fallbackData, error: fallbackError } = await fallbackQuery;
-
-    if (fallbackError) {
-      throw new Error(`Fel vid hämtning av propositioner: ${fallbackError.message}`);
-    }
-
-    return {
-      count: fallbackData?.length || 0,
-      propositioner: fallbackData || [],
-      source: 'riksdagen_dokument',
-    };
-  }
-
-  return {
-    count: data?.length || 0,
-    propositioner: data || [],
-    source: 'riksdagen_propositioner',
-  };
-}
-
-/**
- * Hämta betänkanden
- */
 export const getBetankandenSchema = z.object({
-  utskott: z.string().optional().describe('Utskott (t.ex. KU, FiU)'),
-  rm: z.string().optional().describe('Riksmöte (t.ex. 2024/25)'),
-  limit: z.number().min(1).max(200).optional().default(50).describe('Max antal resultat'),
+  rm: z.string().optional(),
+  organ: z.string().optional(),
+  limit: z.number().min(1).max(200).optional(),
 });
+export const getBetankanden = buildDokumentFetcher('bet');
 
-export async function getBetankanden(args: z.infer<typeof getBetankandenSchema>) {
-  const supabase = getSupabase();
-
-  const limit = normalizeLimit(args.limit, 50);
-
-  let query = supabase
-    .from('riksdagen_betankanden')
-    .select('*')
-    .limit(limit)
-    .order('datum', { ascending: false });
-
-  if (args.utskott) {
-    query = query.eq('organ', args.utskott);
-  }
-
-  if (args.rm) {
-    query = query.eq('rm', args.rm);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    // Fallback till riksdagen_dokument
-    let fallbackQuery = supabase
-      .from('riksdagen_dokument')
-      .select('*')
-      .eq('doktyp', 'bet')
-      .limit(limit)
-      .order('datum', { ascending: false });
-
-    if (args.utskott) {
-      fallbackQuery = fallbackQuery.eq('organ', args.utskott);
-    }
-
-    if (args.rm) {
-      fallbackQuery = fallbackQuery.eq('rm', args.rm);
-    }
-
-    const { data: fallbackData, error: fallbackError } = await fallbackQuery;
-
-    if (fallbackError) {
-      throw new Error(`Fel vid hämtning av betänkanden: ${fallbackError.message}`);
-    }
-
-    return {
-      count: fallbackData?.length || 0,
-      betankanden: fallbackData || [],
-      source: 'riksdagen_dokument',
-    };
-  }
-
-  return {
-    count: data?.length || 0,
-    betankanden: data || [],
-    source: 'riksdagen_betankanden',
-  };
-}
-
-/**
- * Hämta frågor från Riksdagen
- */
 export const getFragorSchema = z.object({
-  typ: z.enum(['skriftlig', 'muntlig']).optional().describe('Typ av fråga'),
-  limit: z.number().min(1).max(200).optional().default(50).describe('Max antal resultat'),
+  rm: z.string().optional(),
+  limit: z.number().min(1).max(200).optional(),
 });
+export const getFragor = buildDokumentFetcher('fr');
 
-export async function getFragor(args: z.infer<typeof getFragorSchema>) {
-  const supabase = getSupabase();
-
-  const limit = normalizeLimit(args.limit, 50);
-
-  let query = supabase
-    .from('riksdagen_fragor')
-    .select('*')
-    .limit(limit)
-    .order('publicerad_datum', { ascending: false });
-
-  if (args.typ) {
-    query = query.eq('typ', args.typ);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error(`Fel vid hämtning av frågor: ${error.message}`);
-  }
-
-  return {
-    count: data?.length || 0,
-    fragor: data || [],
-  };
-}
-
-/**
- * Hämta interpellationer
- */
 export const getInterpellationerSchema = z.object({
-  limit: z.number().min(1).max(200).optional().default(50).describe('Max antal resultat'),
-  from_date: z.string().optional().describe('Från datum (YYYY-MM-DD)'),
+  rm: z.string().optional(),
+  limit: z.number().min(1).max(200).optional(),
 });
+export const getInterpellationer = buildDokumentFetcher('ip');
 
-export async function getInterpellationer(args: z.infer<typeof getInterpellationerSchema>) {
-  const supabase = getSupabase();
-
-  const limit = normalizeLimit(args.limit, 50);
-
-  let query = supabase
-    .from('riksdagen_interpellationer')
-    .select('*')
-    .limit(limit)
-    .order('publicerad_datum', { ascending: false });
-
-  if (args.from_date) {
-    query = query.gte('publicerad_datum', args.from_date);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error(`Fel vid hämtning av interpellationer: ${error.message}`);
-  }
-
-  return {
-    count: data?.length || 0,
-    interpellationer: data || [],
-  };
-}
-
-/**
- * Hämta utskott
- */
 export const getUtskottSchema = z.object({});
 
-export async function getUtskott(args: z.infer<typeof getUtskottSchema>) {
-  const supabase = getSupabase();
+const UTSKOTT = [
+  'KU', 'FiU', 'UU', 'JuU', 'SkU', 'MJU', 'NU', 'SoU', 'SfU',
+  'KrU', 'UbU', 'TU', 'FöU', 'AU', 'KrigsU', 'KlimatU',
+];
 
-  const { data, error } = await supabase
-    .from('riksdagen_utskott')
-    .select('*')
-    .order('namn');
-
-  if (error) {
-    throw new Error(`Fel vid hämtning av utskott: ${error.message}`);
-  }
-
+export async function getUtskott() {
   return {
-    count: data?.length || 0,
-    utskott: data || [],
+    antal: UTSKOTT.length,
+    utskott: UTSKOTT.map((kod) => ({ kod })),
   };
 }

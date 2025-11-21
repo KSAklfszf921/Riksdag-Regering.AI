@@ -68,6 +68,6 @@ export const DATA_DICTIONARY = {
     'Motioner identifieras ofta via beteckning med partisignatur (ex. 2024/25:353 (S)).',
     'Pressmeddelanden och propositioner från regeringen kan sakna Riksmöteskoppling; använd departement/tidsintervall i stället.',
     'Voteringsdata saknar ibland individuella röster; verktygen faller tillbaka på totalsiffror men signalerar när detaljer saknas.',
-    'Alla tabeller är read-only i MCP-servern. För skrivoperationer hänvisas till Supabase direkt.',
+    'All data hämtas live; MCP-servern lagrar inget och erbjuder inga skrivoperationer.',
   ],
 };

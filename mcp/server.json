@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
   "name": "io.github.KSAklfszf921/riksdag-regering-mcp",
   "title": "Riksdag & Regering MCP",
-  "description": "Svenska Riksdagens och Regeringskansliets öppna data - 27 verktyg för politik, dokument och analys",
-  "version": "2.0.1",
+  "description": "Direktkopplad MCP-server med öppna API-anrop mot Riksdagen och g0v.se",
+  "version": "2.1.0",
   "websiteUrl": "https://riksdag-regering-ai.onrender.com",
   "repository": {
     "url": "https://github.com/KSAklfszf921/Riksdag-Regering-MCP",
@@ -25,23 +25,7 @@
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
-      },
-      "environmentVariables": [
-        {
-          "name": "SUPABASE_URL",
-          "description": "Supabase project URL (optional - defaults to public instance)",
-          "isRequired": false,
-          "isSecret": false,
-          "placeholder": "https://your-project.supabase.co"
-        },
-        {
-          "name": "SUPABASE_ANON_KEY",
-          "description": "Supabase anonymous key (optional - defaults to public instance)",
-          "isRequired": false,
-          "isSecret": true,
-          "placeholder": "your-anon-key"
-        }
-      ]
+      }
     }
   ],
   "remotes": [

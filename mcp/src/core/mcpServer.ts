@@ -1,401 +1,106 @@
-/**
- * Shared MCP Server Configuration
- *
- * Denna modul innehåller den gemensamma logiken för både STDIO och HTTP servrar.
- * Detta eliminerar duplicering mellan index.ts och server.ts.
- */
-
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { performance } from 'node:perf_hooks';
 import {
   CallToolRequestSchema,
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { ZodError } from 'zod';
-
 import { listResources, getResource } from '../resources/index.js';
-
-// Search tools
 import {
-  searchLedamoter, searchLedamoterSchema,
-  searchDokument, searchDokumentSchema,
-  searchDokumentFulltext, searchDokumentFulltextSchema,
-  searchAnforanden, searchAnforandenSchema,
-  searchVoteringar, searchVoteringarSchema,
-  searchRegering, searchRegeringSchema,
+  searchLedamoter,
+  searchLedamoterSchema,
+  searchDokument,
+  searchDokumentSchema,
+  searchDokumentFulltext,
+  searchDokumentFulltextSchema,
+  searchAnforanden,
+  searchAnforandenSchema,
+  searchVoteringar,
+  searchVoteringarSchema,
+  searchRegering,
+  searchRegeringSchema,
 } from '../tools/search.js';
-
-// Analysis tools
 import {
-  analyzePartifordelning, analyzePartifordelningSchema,
-  analyzeVotering, analyzeVoteringSchema,
-  analyzeLedamot, analyzeLedamotSchema,
-  analyzeDokumentStatistik, analyzeDokumentStatistikSchema,
-  analyzeTrend, analyzeTrendSchema,
-} from '../tools/analyze.js';
-
-// Comparison tools
-import {
-  compareLedamoter, compareLedamoterSchema,
-  comparePartiRostning, comparePartiRostningSchema,
-  compareRiksdagRegering, compareRiksdagRegeringSchema,
-  comparePartier, comparePartierSchema,
-} from '../tools/compare.js';
-
-// Fetch tools
-import {
-  getDokument, getDokumentSchema,
-  getLedamot, getLedamotSchema,
-  getMotioner, getMotionerSchema,
-  getPropositioner, getPropositionerSchema,
-  getBetankanden, getBetankandenSchema,
-  getFragor, getFragorSchema,
-  getInterpellationer, getInterpellationerSchema,
-  getUtskott, getUtskottSchema,
+  getDokument,
+  getDokumentSchema,
+  getLedamot,
+  getLedamotSchema,
+  getMotioner,
+  getMotionerSchema,
+  getPropositioner,
+  getPropositionerSchema,
+  getBetankanden,
+  getBetankandenSchema,
+  getFragor,
+  getFragorSchema,
+  getInterpellationer,
+  getInterpellationerSchema,
+  getUtskott,
+  getUtskottSchema,
 } from '../tools/fetch.js';
-
-// Aggregate tools
 import {
-  getDataSummary, getDataSummarySchema,
-  analyzePartiActivity, analyzePartiActivitySchema,
-  analyzeRiksmote, analyzeRiksmoteSchema,
-  getTopLists, getTopListsSchema,
-  globalSearch, globalSearchSchema,
-} from '../tools/aggregate.js';
-import {
-  getPressmeddelande, getPressmeddelandeSchema,
-  getDokumentInnehall, getDokumentInnehallSchema,
-} from '../tools/content.js';
-import {
-  getVoteringRosterSummary,
-  getVoteringRosterSummarySchema,
+  getPressmeddelande,
+  getPressmeddelandeSchema,
+  getDokumentInnehall,
+  getDokumentInnehallSchema,
   summarizePressmeddelande,
   summarizePressmeddelandeSchema,
-  getSyncStatus,
-  getSyncStatusSchema,
-  getDataDictionary,
-  getDataDictionarySchema,
-} from '../tools/insights.js';
+} from '../tools/content.js';
+import {
+  fetchPaginatedDocuments,
+  fetchPaginatedDocumentsSchema,
+  fetchPaginatedAnforanden,
+  fetchPaginatedAnforandenSchema,
+  batchFetchDocuments,
+  batchFetchDocumentsSchema,
+} from '../tools/paginatedDocuments.js';
+import { enhancedGovernmentSearch, enhancedSearchSchema } from '../tools/enhancedGovernmentSearch.js';
+import { getCalendarEvents, getCalendarEventsSchema } from '../tools/kalender.js';
+import { fetchReport, listReports, reportSchema } from '../tools/reports.js';
+import { getSyncStatus, getSyncStatusSchema } from '../tools/health.js';
+import { getDataDictionary, getDataDictionarySchema } from '../tools/metadata.js';
+import { getVotingGroup, getVotingGroupSchema } from '../tools/votingGroup.js';
 import { logToolCall } from '../utils/telemetry.js';
 
-/**
- * Tool definitions - samma för alla transporter
- */
 const TOOL_DEFINITIONS = [
-  // SÖKVERKTYG
-  {
-    name: 'search_ledamoter',
-    description: 'Sök efter ledamöter i Riksdagen baserat på namn, parti, valkrets eller status',
-    inputSchema: searchLedamoterSchema,
-  },
-  {
-    name: 'search_dokument',
-    description: 'Sök efter dokument från Riksdagen (motioner, propositioner, betänkanden, etc.)',
-    inputSchema: searchDokumentSchema,
-  },
-  {
-    name: 'search_anforanden',
-    description: 'Sök efter anföranden i Riksdagen baserat på talare, parti, debattnamn eller text',
-    inputSchema: searchAnforandenSchema,
-  },
-  {
-    name: 'search_voteringar',
-    description: 'Sök efter voteringar i Riksdagen',
-    inputSchema: searchVoteringarSchema,
-  },
-  {
-    name: 'search_regering',
-    description: 'Sök i Regeringskansliets dokument (pressmeddelanden, propositioner, SOU, etc.)',
-    inputSchema: searchRegeringSchema,
-  },
-
-  // ANALYSVERKTYG
-  {
-    name: 'analyze_partifordelning',
-    description: 'Analysera fördelningen av ledamöter per parti',
-    inputSchema: analyzePartifordelningSchema,
-  },
-  {
-    name: 'analyze_votering',
-    description: 'Analysera röstningsstatistik för en specifik votering',
-    inputSchema: analyzeVoteringSchema,
-  },
-  {
-    name: 'analyze_ledamot',
-    description: 'Analysera en ledamots aktivitet (anföranden och röstningar)',
-    inputSchema: analyzeLedamotSchema,
-  },
-  {
-    name: 'analyze_dokument_statistik',
-    description: 'Analysera statistik över dokument från Riksdagen',
-    inputSchema: analyzeDokumentStatistikSchema,
-  },
-  {
-    name: 'analyze_trend',
-    description: 'Analysera trender över tid för dokument, anföranden eller voteringar',
-    inputSchema: analyzeTrendSchema,
-  },
-
-  // JÄMFÖRELSEVERKTYG
-  {
-    name: 'compare_ledamoter',
-    description: 'Jämför två ledamöters aktivitet och röstningsstatistik',
-    inputSchema: compareLedamoterSchema,
-  },
-  {
-    name: 'compare_parti_rostning',
-    description: 'Jämför partiernas röstbeteende mellan två voteringar',
-    inputSchema: comparePartiRostningSchema,
-  },
-  {
-    name: 'compare_riksdag_regering',
-    description: 'Jämför dokument från Riksdagen och Regeringen om samma ämne',
-    inputSchema: compareRiksdagRegeringSchema,
-  },
-  {
-    name: 'compare_partier',
-    description: 'Jämför aktivitet och statistik mellan två partier',
-    inputSchema: comparePartierSchema,
-  },
-
-  // HÄMTNINGSVERKTYG
-  {
-    name: 'get_dokument',
-    description: 'Hämta ett specifikt dokument med alla detaljer',
-    inputSchema: getDokumentSchema,
-  },
-  {
-    name: 'get_ledamot',
-    description: 'Hämta fullständig information om en ledamot inkl. uppdrag',
-    inputSchema: getLedamotSchema,
-  },
-  {
-    name: 'get_motioner',
-    description: 'Hämta motioner från Riksdagen',
-    inputSchema: getMotionerSchema,
-  },
-  {
-    name: 'get_propositioner',
-    description: 'Hämta propositioner från Riksdagen',
-    inputSchema: getPropositionerSchema,
-  },
-  {
-    name: 'get_betankanden',
-    description: 'Hämta betänkanden från utskotten',
-    inputSchema: getBetankandenSchema,
-  },
-  {
-    name: 'get_fragor',
-    description: 'Hämta frågor (muntliga och skriftliga) från Riksdagen',
-    inputSchema: getFragorSchema,
-  },
-  {
-    name: 'get_interpellationer',
-    description: 'Hämta interpellationer från Riksdagen',
-    inputSchema: getInterpellationerSchema,
-  },
-  {
-    name: 'get_utskott',
-    description: 'Hämta lista över alla utskott',
-    inputSchema: getUtskottSchema,
-  },
-
-  // AGGREGERINGSVERKTYG
-  {
-    name: 'get_data_summary',
-    description: 'Hämta sammanställning av all data i systemet',
-    inputSchema: getDataSummarySchema,
-  },
-  {
-    name: 'analyze_parti_activity',
-    description: 'Detaljerad analys av ett partis aktivitet över tid',
-    inputSchema: analyzePartiActivitySchema,
-  },
-  {
-    name: 'analyze_riksmote',
-    description: 'Analysera ett specifikt riksmöte (dokument, voteringar, anföranden)',
-    inputSchema: analyzeRiksmoteSchema,
-  },
-  {
-    name: 'get_top_lists',
-    description: 'Få toplistor för talare, partier, utskott eller dokumenttyper',
-    inputSchema: getTopListsSchema,
-  },
-  {
-    name: 'global_search',
-    description: 'Sök över alla tabeller (dokument, anföranden, ledamöter, pressmeddelanden)',
-    inputSchema: globalSearchSchema,
-  },
-  {
-    name: 'get_pressmeddelande',
-    description: 'Returnera pressmeddelande med fulltext och sammanfattning',
-    inputSchema: getPressmeddelandeSchema,
-  },
-  {
-    name: 'get_dokument_innehall',
-    description: 'Returnera riksdagens dokument med fulltext (cacha lokalt)',
-    inputSchema: getDokumentInnehallSchema,
-  },
-  {
-    name: 'search_dokument_fulltext',
-    description: 'Fulltextsök i dokumentens innehåll',
-    inputSchema: searchDokumentFulltextSchema,
-  },
-
-  // INSIGHTS
-  {
-    name: 'get_votering_roster_summary',
-    description: 'Summerar röster per parti för en given votering',
-    inputSchema: getVoteringRosterSummarySchema,
-  },
-  {
-    name: 'summarize_pressmeddelande',
-    description: 'Generera en kort sammanfattning av ett pressmeddelande',
-    inputSchema: summarizePressmeddelandeSchema,
-  },
-  {
-    name: 'get_sync_status',
-    description: 'Visa senaste status för Riksdagens/Regeringens datapipelines',
-    inputSchema: getSyncStatusSchema,
-  },
-  {
-    name: 'get_data_dictionary',
-    description: 'Returnerar definitioner och anvisningar för MCP-serverns dataset',
-    inputSchema: getDataDictionarySchema,
-  },
+  { name: 'search_ledamoter', description: 'Sök efter ledamöter i Riksdagen', inputSchema: searchLedamoterSchema },
+  { name: 'search_dokument', description: 'Sök efter riksdagsdokument', inputSchema: searchDokumentSchema },
+  { name: 'search_dokument_fulltext', description: 'Fulltextsök i dokument', inputSchema: searchDokumentFulltextSchema },
+  { name: 'search_anforanden', description: 'Sök efter anföranden', inputSchema: searchAnforandenSchema },
+  { name: 'search_voteringar', description: 'Sök efter voteringar och röster', inputSchema: searchVoteringarSchema },
+  { name: 'search_regering', description: 'Sök i Regeringskansliets dokument via g0v.se', inputSchema: searchRegeringSchema },
+  { name: 'get_dokument', description: 'Hämta detaljer om ett specifikt riksdagsdokument', inputSchema: getDokumentSchema },
+  { name: 'get_ledamot', description: 'Hämta detaljer om en ledamot', inputSchema: getLedamotSchema },
+  { name: 'get_motioner', description: 'Senaste motionerna', inputSchema: getMotionerSchema },
+  { name: 'get_propositioner', description: 'Senaste propositionerna', inputSchema: getPropositionerSchema },
+  { name: 'get_betankanden', description: 'Senaste betänkandena', inputSchema: getBetankandenSchema },
+  { name: 'get_fragor', description: 'Skriftliga frågor', inputSchema: getFragorSchema },
+  { name: 'get_interpellationer', description: 'Interpellationer', inputSchema: getInterpellationerSchema },
+  { name: 'get_utskott', description: 'Lista kända utskott', inputSchema: getUtskottSchema },
+  { name: 'get_pressmeddelande', description: 'Hämta pressmeddelande via g0v.se', inputSchema: getPressmeddelandeSchema },
+  { name: 'summarize_pressmeddelande', description: 'Enkel sammanfattning av pressmeddelande', inputSchema: summarizePressmeddelandeSchema },
+  { name: 'get_dokument_innehall', description: 'Hämta dokumentinnehåll och sammanfattning', inputSchema: getDokumentInnehallSchema },
+  { name: 'fetch_paginated_documents', description: 'Paginerad hämtning av dokument', inputSchema: fetchPaginatedDocumentsSchema },
+  { name: 'fetch_paginated_anforanden', description: 'Paginerad hämtning av anföranden', inputSchema: fetchPaginatedAnforandenSchema },
+  { name: 'batch_fetch_documents', description: 'Batch-hämta dokument för flera riksmöten', inputSchema: batchFetchDocumentsSchema },
+  { name: 'get_calendar_events', description: 'Hämta kalenderhändelser', inputSchema: getCalendarEventsSchema },
+  { name: 'get_voting_group', description: 'Hämta voteringar grupperade per parti/valkrets', inputSchema: getVotingGroupSchema },
+  { name: 'list_reports', description: 'Lista tillgängliga rapporter', inputSchema: z.object({}) },
+  { name: 'fetch_report', description: 'Hämta en rapport (HTML/JSON)', inputSchema: reportSchema },
+  { name: 'enhanced_government_search', description: 'Kombinerad sökning i Riksdagen och Regeringen', inputSchema: enhancedSearchSchema },
+  { name: 'get_sync_status', description: 'Visa enklare status för datakällor', inputSchema: getSyncStatusSchema },
+  { name: 'get_data_dictionary', description: 'Visa dataset och fältbeskrivningar', inputSchema: getDataDictionarySchema },
 ];
 
-const TOOL_SCHEMA_MAP: Record<string, unknown> = Object.fromEntries(
-  TOOL_DEFINITIONS.map(tool => [tool.name, tool.inputSchema])
-);
-
-/**
- * Tool handler - kopplar verktygsnamn till funktioner
- */
-async function handleToolCall(
-  name: string,
-  args: any,
-  logger?: {
-    sendLog?: (text: string) => Promise<void>;
-    setParsedArgs?: (parsed: Record<string, unknown>) => void;
-  }
-) {
-  const sendLog = logger?.sendLog;
-  const schema = TOOL_SCHEMA_MAP[name] as { parse?: (value: any) => any } | undefined;
-
-  let parsedArgs = args ?? {};
-
-  if (schema?.parse) {
-    try {
-      parsedArgs = schema.parse(parsedArgs);
-      logger?.setParsedArgs?.(parsedArgs);
-    } catch (error) {
-      if (error instanceof ZodError) {
-        const details = error.issues
-          .map(issue => `${issue.path.join('.') || 'root'}: ${issue.message}`)
-          .join('; ');
-        throw new Error(`Ogiltiga argument för ${name}: ${details}`);
-      }
-      throw error;
-    }
-  }
-  switch (name) {
-    // Search tools
-    case 'search_ledamoter':
-      return await searchLedamoter(parsedArgs);
-    case 'search_dokument':
-      await sendLog?.('🔎 Hämtar dokument…');
-      return await searchDokument(parsedArgs, sendLog);
-    case 'search_dokument_fulltext':
-      return await searchDokumentFulltext(parsedArgs, sendLog);
-    case 'search_anforanden':
-      return await searchAnforanden(parsedArgs);
-    case 'search_voteringar':
-      return await searchVoteringar(parsedArgs);
-    case 'search_regering':
-      return await searchRegering(parsedArgs);
-
-    // Analysis tools
-    case 'analyze_partifordelning':
-      return await analyzePartifordelning(parsedArgs);
-    case 'analyze_votering':
-      return await analyzeVotering(parsedArgs);
-    case 'analyze_ledamot':
-      return await analyzeLedamot(parsedArgs);
-    case 'analyze_dokument_statistik':
-      return await analyzeDokumentStatistik(parsedArgs);
-    case 'analyze_trend':
-      return await analyzeTrend(parsedArgs);
-
-    // Comparison tools
-    case 'compare_ledamoter':
-      return await compareLedamoter(parsedArgs);
-    case 'compare_parti_rostning':
-      return await comparePartiRostning(parsedArgs);
-    case 'compare_riksdag_regering':
-      return await compareRiksdagRegering(parsedArgs);
-    case 'compare_partier':
-      return await comparePartier(parsedArgs);
-
-    // Fetch tools
-    case 'get_dokument':
-      return await getDokument(parsedArgs);
-    case 'get_ledamot':
-      return await getLedamot(parsedArgs);
-    case 'get_motioner':
-      return await getMotioner(parsedArgs);
-    case 'get_propositioner':
-      return await getPropositioner(parsedArgs);
-    case 'get_betankanden':
-      return await getBetankanden(parsedArgs);
-    case 'get_fragor':
-      return await getFragor(parsedArgs);
-    case 'get_interpellationer':
-      return await getInterpellationer(parsedArgs);
-    case 'get_utskott':
-      return await getUtskott(parsedArgs);
-
-    // Aggregate tools
-    case 'get_data_summary':
-      return await getDataSummary(parsedArgs);
-    case 'analyze_parti_activity':
-      return await analyzePartiActivity(parsedArgs);
-    case 'analyze_riksmote':
-      return await analyzeRiksmote(parsedArgs);
-    case 'get_top_lists':
-      return await getTopLists(parsedArgs);
-    case 'global_search':
-      return await globalSearch(parsedArgs);
-    case 'get_pressmeddelande':
-      return await getPressmeddelande(parsedArgs);
-    case 'get_dokument_innehall':
-      return await getDokumentInnehall(parsedArgs, sendLog);
-
-    // Insights
-    case 'get_votering_roster_summary':
-      return await getVoteringRosterSummary(parsedArgs);
-    case 'summarize_pressmeddelande':
-      return await summarizePressmeddelande(parsedArgs);
-    case 'get_sync_status':
-      return await getSyncStatus();
-    case 'get_data_dictionary':
-      return await getDataDictionary(parsedArgs);
-
-    default:
-      throw new Error(`Okänt verktyg: ${name}`);
-  }
-}
-
-/**
- * Skapa och konfigurera MCP servern med alla handlers
- */
-export function createMCPServer(logger?: { error: (msg: string, ...args: any[]) => void }) {
+export function createMCPServer(logger?: any) {
   const server = new Server(
     {
       name: 'riksdag-regering-mcp',
-      version: '2.0.0',
+      version: '2.1.0',
     },
     {
       capabilities: {
@@ -405,124 +110,145 @@ export function createMCPServer(logger?: { error: (msg: string, ...args: any[]) 
     }
   );
 
-  // Lista alla tillgängliga verktyg
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
-    // Konvertera Zod-scheman till JSON Schema
-    const toolsWithJsonSchema = TOOL_DEFINITIONS.map(tool => ({
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: TOOL_DEFINITIONS.map((tool) => ({
       name: tool.name,
       description: tool.description,
-      inputSchema: zodToJsonSchema(tool.inputSchema, {
-        target: 'jsonSchema7',
-        $refStrategy: 'none'
-      })
-    }));
+      inputSchema: zodToJsonSchema(tool.inputSchema),
+    })),
+  }));
 
-    return { tools: toolsWithJsonSchema };
-  });
-
-  // Hantera verktygsanrop
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
+    const start = performance.now();
+    const def = TOOL_DEFINITIONS.find((tool) => tool.name === request.params.name);
+    if (!def) {
+      throw new Error(`Okänt verktyg: ${request.params.name}`);
+    }
 
-    const start = Date.now();
-    let parsedArgsForLog: Record<string, unknown> | undefined;
     try {
-      const logMessages: string[] = [];
-      const result = await handleToolCall(name, args as any, {
-        sendLog: async (text: string) => {
-          logMessages.push(text);
-        },
-        setParsedArgs: (parsed) => {
-          parsedArgsForLog = parsed;
-        },
-      });
+      const args = def.inputSchema.parse(request.params.arguments || {}) as any;
+      let result: unknown;
+      switch (def.name) {
+        case 'search_ledamoter':
+          result = await searchLedamoter(args);
+          break;
+        case 'search_dokument':
+          result = await searchDokument(args);
+          break;
+        case 'search_dokument_fulltext':
+          result = await searchDokumentFulltext(args);
+          break;
+        case 'search_anforanden':
+          result = await searchAnforanden(args);
+          break;
+        case 'search_regering':
+          result = await searchRegering(args);
+          break;
+        case 'search_voteringar':
+          result = await searchVoteringar(args);
+          break;
+        case 'get_dokument':
+          result = await getDokument(args);
+          break;
+        case 'get_ledamot':
+          result = await getLedamot(args);
+          break;
+        case 'get_motioner':
+          result = await getMotioner(args);
+          break;
+        case 'get_propositioner':
+          result = await getPropositioner(args);
+          break;
+        case 'get_betankanden':
+          result = await getBetankanden(args);
+          break;
+        case 'get_fragor':
+          result = await getFragor(args);
+          break;
+        case 'get_interpellationer':
+          result = await getInterpellationer(args);
+          break;
+        case 'get_utskott':
+          result = await getUtskott();
+          break;
+        case 'get_pressmeddelande':
+          result = await getPressmeddelande(args);
+          break;
+        case 'summarize_pressmeddelande':
+          result = await summarizePressmeddelande(args);
+          break;
+        case 'get_dokument_innehall':
+          result = await getDokumentInnehall(args);
+          break;
+        case 'fetch_paginated_documents':
+          result = await fetchPaginatedDocuments(args);
+          break;
+        case 'fetch_paginated_anforanden':
+          result = await fetchPaginatedAnforanden(args);
+          break;
+        case 'batch_fetch_documents':
+          result = await batchFetchDocuments(args);
+          break;
+        case 'get_calendar_events':
+          result = await getCalendarEvents(args);
+          break;
+        case 'get_voting_group':
+          result = await getVotingGroup(args);
+          break;
+        case 'list_reports':
+          result = listReports();
+          break;
+        case 'fetch_report':
+          result = await fetchReport(args);
+          break;
+        case 'enhanced_government_search':
+          result = await enhancedGovernmentSearch(args);
+          break;
+        case 'get_sync_status':
+          result = await getSyncStatus();
+          break;
+        case 'get_data_dictionary':
+          result = getDataDictionary(args);
+          break;
+        default:
+          throw new Error(`Verktyget ${def.name} är inte implementerat.`);
+      }
 
-      logToolCall({
-        tool_name: name,
+      await logToolCall({
+        tool_name: def.name,
         status: 'success',
-        duration_ms: Date.now() - start,
-        args: (parsedArgsForLog ?? args) as Record<string, unknown>,
-      }).catch(() => {});
-
-      (result as any).meta = {
-        ...(result as any).meta,
-        duration_ms: Date.now() - start,
-      };
-
-      const contentBlocks: { type: 'text'; text: string }[] = [];
-      if (logMessages.length > 0) {
-        for (const message of logMessages) {
-          contentBlocks.push({ type: 'text', text: message });
-        }
-      }
-
-      if ((result as any)?.chunks) {
-        const chunks = (result as any).chunks;
-        delete (result as any).chunks;
-        contentBlocks.push(...chunks);
-      }
-
-      contentBlocks.push({
-        type: 'text',
-        text: JSON.stringify(result, null, 2),
+        duration_ms: performance.now() - start,
       });
 
-      return {
-        content: contentBlocks,
-      };
+      return { content: [{ type: 'application/json', text: JSON.stringify(result, null, 2) }] };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      logToolCall({
-        tool_name: name,
-        status: 'error',
-        duration_ms: Date.now() - start,
-        error_message: errorMessage,
-        args: (parsedArgsForLog ?? args) as Record<string, unknown>,
-      }).catch(() => {});
-
-      // Använd logger om tillgänglig, annars console.error
-      if (logger) {
-        logger.error(`Error in tool ${name}:`, errorMessage);
-      } else {
-        console.error(`Error in tool ${name}:`, errorMessage);
+      if (error instanceof ZodError) {
+        throw new Error(`Ogiltiga argument för ${def.name}: ${error.message}`);
       }
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              error: errorMessage,
-              tool: name,
-              tip: 'Kör get_data_dictionary eller docs://workflow-guide för mer kontext.',
-            }, null, 2),
-          },
-        ],
-        isError: true,
-      };
+      await logToolCall({
+        tool_name: def.name,
+        status: 'error',
+        duration_ms: performance.now() - start,
+        error_message: (error as Error).message,
+      });
+      throw error;
     }
   });
 
-  // Lista alla tillgängliga resurser
-  server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    const resources = await listResources();
-    return { resources };
-  });
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: await listResources() }));
 
-  // Läs en specifik resurs
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const { uri } = request.params;
-
-    try {
-      const resource = await getResource(uri);
-      return {
-        contents: [resource],
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Fel vid läsning av resurs ${uri}: ${errorMessage}`);
-    }
+    const resource = await getResource(request.params.uri);
+    return {
+      contents: [
+        {
+          uri: resource.uri,
+          mimeType: resource.mimeType,
+          text: resource.text,
+          type: resource.mimeType.includes('json') ? 'application/json' : 'text',
+        },
+      ],
+    };
   });
 
   return server;

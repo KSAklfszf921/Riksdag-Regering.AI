@@ -26,7 +26,7 @@ export function normalizeApiResponse(
 
   if (!list) return [];
 
-  const hits = parseInt(list['@antal'] || list['@hits'] || '0');
+  const hits = parseInt(list['@antal'] || list['@hits'] || list['@traffar'] || '0');
 
   if (hits === 0) {
     return [];
@@ -59,7 +59,7 @@ export function extractPaginationMeta(data: any, listKey: string): {
     return { hits: 0, page: 1, hasMore: false };
   }
 
-  const hits = parseInt(list['@hits'] || list['@antal'] || '0');
+  const hits = parseInt(list['@hits'] || list['@antal'] || list['@traffar'] || '0');
   const page = parseInt(list['@sida'] || '1');
   const nextPage = list['@nasta_sida'];
 
@@ -166,7 +166,8 @@ export async function safeFetch(
   headers?: Record<string, string>
 ): Promise<any> {
   const defaultHeaders = {
-    'User-Agent': 'riksdag-regering-mcp/2.1',
+    // data.riksdagen.se kräver en vitlistad User-Agent, Wget fungerar konsekvent.
+    'User-Agent': process.env.RIKSDAG_USER_AGENT || 'Wget/1.21 (riksdag-regering-mcp)',
     Accept: 'application/json',
     ...headers,
   };

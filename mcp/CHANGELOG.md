@@ -177,3 +177,8 @@ För buggfixar
 
 #### Säkerhet (Security)
 För säkerhetsuppdateringar
+
+## 2.1.0 - 2025-11-21
+- 🔥 Tog bort samtliga Supabase-beroenden. Servern använder nu endast öppna API:er.
+- ✨ Omskriven verktygslista (21 verktyg) baserad på direkta anrop.
+- 🧹 Dokumentation och exempel uppdaterade för den nya arkitekturen.

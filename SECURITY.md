@@ -151,48 +151,24 @@ USING (bucket_id = 'regeringskansliet-files');
 
 ## Logging & Monitoring
 
-### Admin Activity Log
-Alla admin-åtgärder loggas i `admin_activity_log`:
-- Tidsstämpel
-- Användar-ID
-- Åtgärdstyp
-- Beskrivning
-- Metadata (JSON)
-
-### API Fetch Logs
-Alla API-anrop loggas i `api_fetch_logs`:
-- Tidsstämpel
-- Endpoint
-- Status (success/error)
-- Felmeddelanden
-- Antal items
-
-### Edge Function Logs
-Omfattande logging i edge functions för debugging:
-- Autentisering/auktorisering events
-- API-anrop och svar
-- Fel och exceptions
-- Progress-uppdateringar
+- Alla inkommande MCP-anrop loggas till stderr (plockas upp av Render/PM2/docker)
+- HTTP-servern använder Winston och inkluderar tidsstämpel + stacktraces
+- Ingen lokal databas används – endast direkta anrop mot data.riksdagen.se och g0v.se
+- Rate limiting (100 anrop/15 min) är aktiverat på `/mcp` för att skydda upstream API:er
 
 ## Best Practices
 
 ### ✅ DOs
-- Använd alltid `has_role()` för rollkontroller
-- Validera all input både client- och server-side
-- Logga säkerhetshändelser via `log_admin_activity()`
-- Använd prepared statements (Supabase client)
-- Håll secrets i Supabase Vault
-- Implementera rate limiting vid behov
-- Använd endast service role för filuppladdningar
+- Håll API-nycklar (om du aktiverar `x-api-key`) i hemliga miljövariabler
+- Respektera dataportalerna: cacha svar och ange `User-Agent` enligt riktlinjer
+- Använd `withCache`-hjälparen (NodeCache) för att minska antalet API-calls
+- Kör servern bakom HTTPS eller via MCP-klientens transportkryptering
 
 ### ❌ DON'Ts
-- Lagra roller i localStorage/sessionStorage
-- Använd hårdkodade credentials
-- Kör raw SQL-queries i edge functions
-- Exponera känsliga API-nycklar i client-code
-- Lita på client-side validering ensam
-- Använd `SECURITY DEFINER` utan `set search_path`
-- Tillåt direkt file upload från klienter
+- Skicka råa personuppgifter vidare utan att först kontrollera GDPR-klassning
+- Manipulera g0v-data för att skapa intryck av officiella beslut
+- Spara API-svar med känsligt innehåll på publik disk utan kryptering
+- Sänka rate limiting om du inte samtidigt implementerar egen kö-bevakning
 
 ## Säkerhetsgranskningshistorik
 
@@ -220,13 +196,12 @@ Omfattande logging i edge functions för debugging:
 ## Incident Response
 
 Vid säkerhetsincident:
-1. Logga ut alla användare (revoke sessions via Supabase dashboard)
-2. Granska `admin_activity_log` och `api_fetch_logs`
-3. Granska edge function logs i Supabase dashboard
-4. Kontrollera `user_roles` för oauktoriserade ändringar
-5. Updatera secrets vid behov
-6. Implementera ytterligare säkerhetsåtgärder
-7. Dokumentera incident i denna fil
+1. Stäng av HTTP-endpoints via brandvägg eller MCP-konfiguration
+2. Granska applikationsloggar (stderr/stdout) efter misstänkt trafik
+3. Rotera eventuella `API_KEY` eller andra transporthemligheter
+4. Kontakta data.riksdagen.se / g0v.se om du misstänker att deras tjänster påverkats
+5. Återställ servern från ren build, verifiera checksummor
+6. Dokumentera incident i denna fil
 
 ## Kontakt
 För säkerhetsfrågor eller rapportering av sårbarheter, kontakta systemadministratören.

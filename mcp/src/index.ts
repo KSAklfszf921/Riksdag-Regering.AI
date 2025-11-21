@@ -9,7 +9,6 @@
  */
 
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { initSupabase } from './utils/supabase.js';
 import { createMCPServer } from './core/mcpServer.js';
 
 /**
@@ -17,9 +16,6 @@ import { createMCPServer } from './core/mcpServer.js';
  */
 async function main() {
   try {
-    // Initialisera Supabase
-    initSupabase();
-
     // Skapa MCP server med gemensam konfiguration
     const server = createMCPServer();
 

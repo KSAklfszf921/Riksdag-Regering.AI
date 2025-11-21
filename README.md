@@ -94,11 +94,7 @@ npm install riksdag-regering-mcp
   "mcpServers": {
     "riksdag-regering": {
       "command": "npx",
-      "args": ["riksdag-regering-mcp"],
-      "env": {
-        "SUPABASE_URL": "https://your-project.supabase.co",
-        "SUPABASE_ANON_KEY": "your-anon-key"
-      }
+      "args": ["riksdag-regering-mcp"]
     }
   }
 }
@@ -123,12 +119,8 @@ cd Riksdag-Regering.AI
 # Installera dependencies
 npm run mcp:install
 
-# Konfigurera miljövariabler
-cd mcp
-cp .env.example .env
-# Redigera .env med dina Supabase-credentials
-
 # Bygg och starta
+cd mcp
 npm run build
 npm start
 ```
@@ -141,11 +133,7 @@ npm start
   "mcpServers": {
     "riksdag-regering": {
       "command": "node",
-      "args": ["/absolut/sökväg/till/Riksdag-Regering.AI/mcp/dist/index.js"],
-      "env": {
-        "SUPABASE_URL": "https://your-project.supabase.co",
-        "SUPABASE_ANON_KEY": "your-anon-key"
-      }
+      "args": ["/absolut/sökväg/till/Riksdag-Regering.AI/mcp/dist/index.js"]
     }
   }
 }
@@ -156,48 +144,42 @@ npm start
 
 ## Funktioner
 
-### 📊 27 Verktyg
+Servern är helt frikopplad från Supabase och använder enbart öppna API:er:
 
-Servern erbjuder drygt 35 olika verktyg som kan fördelas i 5 kategorier. Här här några exempel:
+- **Riksdagen:** `https://data.riksdagen.se` (dokument, ledamöter, anföranden)
+- **Regeringskansliet:** `https://g0v.se/api` (propositioner, pressmeddelanden, SOU)
 
-**Sökverktyg (5)**
-- `search_ledamoter` - Sök ledamöter efter namn, parti, valkrets
-- `search_dokument` - Sök riksdagsdokument (motioner, propositioner, betänkanden)
-- `search_anforanden` - Hitta anföranden och debatter
+### ⚒️ Tillgängliga verktyg
 
-**Analysverktyg (6)**
-- `analyze_partifordelning` - Analysera partifördelning i riksdagen
-- `analyze_votering` - Detaljerad voteringsstatistik
-- `analyze_ledamot` - Ledamots aktivitetsanalys (anföranden, röster, dokument)
+**Sökverktyg**
+- `search_ledamoter` – Sök ledamöter baserat på namn, parti eller valkrets
+- `search_dokument` / `search_dokument_fulltext` – Sök dokument och få träffar direkt från API:t
+- `search_anforanden` – Filtrera anföranden efter talare, parti eller ämne
+- `search_regering` – Sök pressmeddelanden, propositioner och SOU via g0v.se
 
-**Jämförelseverktyg (4)**
-- `compare_ledamoter` - Jämför två ledamöters aktiviteter
-- `compare_parti_rostning` - Jämför partiers röstmönster
-- `compare_riksdag_regering` - Korsreferera riksdags- och regeringsdokument
+**Hämtningsverktyg**
+- `get_dokument`, `get_dokument_innehall`
+- `get_ledamot`, `get_motioner`, `get_propositioner`, `get_betankanden`, `get_fragor`, `get_interpellationer`, `get_utskott`
 
+**Innehåll & sammanfattning**
+- `get_pressmeddelande`, `summarize_pressmeddelande`
 
-**Aggregeringsverktyg (6)**
-- `get_top_lists` - Topplistor för talare, partier, utskott
-- `analyze_riksmote` - Analysera specifikt riksmöte
-- `recent_aktivitet` - Senaste parlamentariska aktiviteten
-- `global_search` - Sök över alla datakällor samtidigt
+**Paginerade verktyg**
+- `fetch_paginated_documents`, `fetch_paginated_anforanden`, `batch_fetch_documents`
 
+**Övrigt**
+- `enhanced_government_search` – Kombinerad sökning över Riksdagen och Regeringen
+- `get_data_dictionary`, `get_sync_status`
 
-**Detaljverktyg (6)**
-- `get_ledamot` - Fullständig ledamotsprofil med uppdrag
-- `get_dokument` - Komplett dokumentinformation
-- `get_motioner` - Hämta motioner från riksdagen
+### 📚 Resurser
 
-###  4 Resurser
+`resources/list` exponerar referensdata i JSON/Markdown-form:
 
-Strukturerad referensdata tillgänglig via `resources/list`:
-
-- `riksdagen://ledamoter` - Alla nuvarande riksdagsledamöter
-- `riksdagen://partier` - Översikt över politiska partier
-
-### 📝 5 Promptmallar
-
-Färdiga mallar för vanliga uppgifter via `prompts/list`:
+- `riksdagen://ledamoter` – Färsk lista över ledamöter
+- `riksdagen://partier` – Antal ledamöter per parti
+- `riksdagen://dokument/typer` – Aktiva dokumenttyper
+- `regeringen://departement` – Departement och dokumentantal
+- `docs://data-dictionary`, `docs://workflow-guide`, `docs://readme`
 
 - `analyze_member_activity` - Analysera ledamots aktivitet
 - `compare_party_votes` - Jämför partiers röstmönster
@@ -234,7 +216,7 @@ Färdiga mallar för vanliga uppgifter via `prompts/list`:
 - **Språk:** TypeScript 5.0+
 - **MCP SDK:** @modelcontextprotocol/sdk ^0.5.0
 - **HTTP Server:** Express.js 4.x
-- **Database:** Supabase PostgreSQL
+- **Datakällor:** Riksdagens öppna API + g0v.se
 - **Validering:** Zod 3.x
 - **Logging:** Winston 3.x
 
@@ -258,3 +240,17 @@ MIT License - Se [LICENSE](LICENSE) för detaljer.
 - **Email:** [isak.skogstad@me.com](mailto:isak.skogstad@me.com)
 
 **Version 2.0.0** | MCP JSON-RPC 2.0 | Remote HTTP Support | 27 Tools | 4 Resources | 5 Prompts
+**Kalender & rapporter**
+- `get_calendar_events` – Lista kammaren/utskotten med `from`, `tom`, `akt`, `org`.
+- `get_voting_group` – Hämta grupperade voteringar per parti/valkrets.
+- `list_reports` / `fetch_report` – Lista och hämta Riksdagens rapporter (ledamotsstatistik, diarium, könsstatistik).
+
+### 🧪 Snabbtest
+
+Starta först servern (`npm run build && node dist/server.js`) och kör sedan:
+
+```bash
+MCP_URL='http://localhost:3000/mcp' node scripts/test-new-tools.mjs
+```
+
+Scriptet testar `search_voteringar`, `get_calendar_events` och `fetch_report` utan krav på autentisering.

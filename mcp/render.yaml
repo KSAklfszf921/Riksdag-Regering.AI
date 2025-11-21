@@ -24,13 +24,6 @@ services:
       - key: LOG_LEVEL
         value: info
 
-      # Supabase configuration (add these in Render dashboard)
-      - key: SUPABASE_URL
-        sync: false  # Set manually in dashboard
-
-      - key: SUPABASE_ANON_KEY
-        sync: false  # Set manually in dashboard
-
       # Optional: API key for authentication
       - key: API_KEY
         sync: false  # Set manually in dashboard (optional)

@@ -1,5 +1,5 @@
 /**
- * Enkel cache-hjälpare för att slippa duplicerade Supabase-anrop.
+ * Enkel cache-hjälpare för att slippa duplicerade API-anrop.
  */
 
 import NodeCache from 'node-cache';

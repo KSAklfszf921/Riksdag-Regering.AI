@@ -9,7 +9,6 @@ import {
   safeFetch,
   buildQueryString,
   PaginatedResponse,
-  encodeRiksmote,
 } from './apiHelpers.js';
 
 const API_BASE = 'https://data.riksdagen.se';
@@ -22,15 +21,62 @@ export async function fetchDokumentDirect(params: {
   doktyp?: string;
   sok?: string;
   rm?: string;
+  organ?: string;
+  bet?: string;
+  tempbeteckning?: string;
+  nr?: string;
+  nummer?: string;
+  iid?: string;
+  parti?: string;
+  talare?: string;
+  mottagare?: string;
+  typ?: string;
+  subtyp?: string;
+  from?: string;
+  tom?: string;
+  status?: string;
+  subtitle?: string;
+  relaterat_id?: string;
+  avd?: string;
+  webbtv?: 'true' | 'false';
+  exakt?: 'true' | 'false';
+  planering?: 'true' | 'false';
+  facets?: string;
+  rapport?: string;
+  sort?: string;
+  sortorder?: 'asc' | 'desc';
   p?: number;
   sz?: number;
 }): Promise<PaginatedResponse<any>> {
   await rateLimiter.waitForToken();
 
   const queryString = buildQueryString({
-    doktyp: params.doktyp?.toLowerCase(), // API uses lowercase
+    doktyp: params.doktyp?.toLowerCase(),
+    typ: params.typ,
+    subtyp: params.subtyp,
     sok: params.sok,
-    rm: params.rm ? encodeRiksmote(params.rm) : undefined,
+    rm: params.rm,
+    organ: params.organ,
+    bet: params.bet,
+    tempbeteckning: params.tempbeteckning,
+    nummer: params.nummer || params.nr,
+    iid: params.iid,
+    parti: params.parti,
+    talare: params.talare,
+    mottagare: params.mottagare,
+    from: params.from,
+    tom: params.tom,
+    status: params.status,
+    subtitle: params.subtitle,
+    relaterat_id: params.relaterat_id,
+    avd: params.avd,
+    webbtv: params.webbtv,
+    exakt: params.exakt,
+    planering: params.planering,
+    facets: params.facets,
+    rapport: params.rapport,
+    sort: params.sort,
+    sortorder: params.sortorder,
     p: params.p || 1,
     sz: params.sz || 50,
     utformat: 'json',
@@ -59,7 +105,7 @@ export async function fetchAnforandenDirect(params: {
     sok: params.sok,
     talare: params.talare,
     parti: params.parti?.toUpperCase(),
-    rm: params.rm ? encodeRiksmote(params.rm) : undefined,
+    rm: params.rm,
     p: params.p || 1,
     sz: params.sz || 100,
     utformat: 'json',
@@ -75,9 +121,15 @@ export async function fetchAnforandenDirect(params: {
  * Hämta voteringar direkt från Riksdagens API med paginering
  */
 export async function fetchVoteringarDirect(params: {
+  votering_id?: string;
   rm?: string;
   bet?: string;
   punkt?: string;
+  iid?: string;
+  parti?: string;
+  valkrets?: string;
+  rost?: string;
+  avser?: string;
   gruppering?: 'namn' | 'parti' | 'valkrets';
   p?: number;
   sz?: number;
@@ -85,9 +137,15 @@ export async function fetchVoteringarDirect(params: {
   await rateLimiter.waitForToken();
 
   const queryString = buildQueryString({
-    rm: params.rm ? encodeRiksmote(params.rm) : undefined,
+    votering_id: params.votering_id,
+    rm: params.rm,
     bet: params.bet,
     punkt: params.punkt,
+    iid: params.iid,
+    parti: params.parti,
+    valkrets: params.valkrets,
+    rost: params.rost,
+    avser: params.avser,
     gruppering: params.gruppering,
     p: params.p || 1,
     sz: params.sz || 500,
@@ -111,6 +169,7 @@ export async function fetchLedamoterDirect(params: {
   parti?: string;
   valkrets?: string;
   rdlstatus?: string;
+  iid?: string;
   p?: number;
   sz?: number;
 }): Promise<PaginatedResponse<any>> {
@@ -120,6 +179,7 @@ export async function fetchLedamoterDirect(params: {
     fnamn: params.fnamn,
     enamn: params.enamn,
     parti: params.parti?.toUpperCase(),
+    iid: params.iid,
     valkrets: params.valkrets,
     rdlstatus: params.rdlstatus || 'samtliga',
     p: params.p || 1,
@@ -133,4 +193,69 @@ export async function fetchLedamoterDirect(params: {
   const data = await safeFetch(url);
 
   return buildPaginatedResponse(data, 'personlista');
+}
+
+export async function fetchVoteringGroup(params: {
+  rm?: string;
+  bet?: string;
+  punkt?: string;
+  grupperin?: string;
+  sz?: number;
+  utformat?: string;
+}): Promise<PaginatedResponse<any>> {
+  await rateLimiter.waitForToken();
+
+  const queryString = buildQueryString({
+    rm: params.rm,
+    bet: params.bet,
+    punkt: params.punkt,
+    gruppering: params.grupperin,
+    sz: params.sz || 500,
+    utformat: params.utformat || 'json',
+  });
+
+  const url = `${API_BASE}/voteringlistagrupp/?${queryString}`;
+  const data = await safeFetch(url);
+
+  return buildPaginatedResponse(data, 'voteringlista');
+}
+
+export async function fetchKalenderDirect(params: {
+  from?: string;
+  tom?: string;
+  akt?: string;
+  org?: string;
+  sz?: number;
+  sort?: string;
+}): Promise<
+  PaginatedResponse<any> | { data: any[]; hits: number; page: number; hasMore: boolean; raw: string }
+> {
+  await rateLimiter.waitForToken();
+
+  const queryString = buildQueryString({
+    from: params.from,
+    tom: params.tom,
+    akt: params.akt,
+    org: params.org,
+    sz: params.sz || 200,
+    sort: params.sort,
+    utformat: 'json',
+  });
+
+  const url = `${API_BASE}/kalenderlista/?${queryString}`;
+  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  const text = await response.text();
+
+  try {
+    const data = JSON.parse(text);
+    return buildPaginatedResponse(data, 'kalender');
+  } catch {
+    return {
+      data: [],
+      hits: 0,
+      page: 1,
+      hasMore: false,
+      raw: text,
+    };
+  }
 }

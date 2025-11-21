@@ -17,9 +17,8 @@ import {
 import winston from 'winston';
 import NodeCache from 'node-cache';
 
-import { initSupabase } from './utils/supabase.js';
 import { createMCPServer } from './core/mcpServer.js';
-import { getSyncStatus } from './tools/insights.js';
+import { getSyncStatus } from './tools/health.js';
 
 // Configure logging
 const logger = winston.createLogger({
@@ -45,8 +44,6 @@ const cache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
 // Environment variables
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
-const API_KEY = process.env.API_KEY; // Optional API key for authentication
-
 /**
  * Create and configure Express app
  */
@@ -71,40 +68,15 @@ function createApp() {
   });
   app.use('/mcp', limiter);
 
-  // API key authentication middleware (optional)
-  const authenticateApiKey = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    if (!API_KEY) {
-      return next(); // No API key required if not configured
-    }
-
-    const apiKey = req.headers['x-api-key'] || req.query.api_key;
-    if (apiKey !== API_KEY) {
-      return res.status(401).json({ error: 'Invalid API key' });
-    }
-    next();
-  };
-
   // Health check endpoint
   app.get('/health', async (req, res) => {
-    let syncSummary: any = null;
-    try {
-      const status = await getSyncStatus();
-      syncSummary = {
-        generated_at: status.generated_at,
-        riksdagen_latest: status.riksdagen.latest?.created_at ?? null,
-        regeringskansliet_latest: status.regeringskansliet.latest?.created_at ?? null,
-        pending_failures: (status.riksdagen.failures.length + status.regeringskansliet.failures.length),
-      };
-    } catch {
-      syncSummary = null;
-    }
-
+    const sync = await getSyncStatus();
     res.json({
       status: 'ok',
       service: 'riksdag-regering-mcp',
-      version: '2.0.0',
+      version: '2.1.0',
       timestamp: new Date().toISOString(),
-      sync: syncSummary,
+      sync,
     });
   });
 
@@ -134,7 +106,7 @@ function createApp() {
   }
 
   // MCP endpoints
-  app.post('/mcp/list-tools', authenticateApiKey, async (req, res) => {
+  app.post('/mcp/list-tools', async (req, res) => {
     try {
       const cacheKey = 'list-tools';
       const cached = cache.get(cacheKey);
@@ -143,10 +115,7 @@ function createApp() {
         return res.json(cached);
       }
 
-      const result = await mcpServer.request(
-        { method: 'tools/list' },
-        ListToolsRequestSchema
-      );
+      const result = await callMCPHandler('tools/list');
 
       cache.set(cacheKey, result);
       res.json(result);
@@ -156,7 +125,7 @@ function createApp() {
     }
   });
 
-  app.post('/mcp/call-tool', authenticateApiKey, async (req, res) => {
+  app.post('/mcp/call-tool', async (req, res) => {
     try {
       const { name, arguments: args } = req.body;
 
@@ -164,13 +133,7 @@ function createApp() {
         return res.status(400).json({ error: 'Tool name is required' });
       }
 
-      const result = await mcpServer.request(
-        {
-          method: 'tools/call',
-          params: { name, arguments: args || {} }
-        },
-        CallToolRequestSchema
-      );
+      const result = await callMCPHandler('tools/call', { name, arguments: args || {} });
 
       res.json(result);
     } catch (error) {
@@ -179,7 +142,7 @@ function createApp() {
     }
   });
 
-  app.post('/mcp/list-resources', authenticateApiKey, async (req, res) => {
+  app.post('/mcp/list-resources', async (req, res) => {
     try {
       const cacheKey = 'list-resources';
       const cached = cache.get(cacheKey);
@@ -188,10 +151,7 @@ function createApp() {
         return res.json(cached);
       }
 
-      const result = await mcpServer.request(
-        { method: 'resources/list' },
-        ListResourcesRequestSchema
-      );
+      const result = await callMCPHandler('resources/list');
 
       cache.set(cacheKey, result);
       res.json(result);
@@ -201,7 +161,7 @@ function createApp() {
     }
   });
 
-  app.post('/mcp/read-resource', authenticateApiKey, async (req, res) => {
+  app.post('/mcp/read-resource', async (req, res) => {
     try {
       const { uri } = req.body;
 
@@ -209,13 +169,7 @@ function createApp() {
         return res.status(400).json({ error: 'Resource URI is required' });
       }
 
-      const result = await mcpServer.request(
-        {
-          method: 'resources/read',
-          params: { uri }
-        },
-        ReadResourceRequestSchema
-      );
+      const result = await callMCPHandler('resources/read', { uri });
 
       res.json(result);
     } catch (error) {
@@ -361,65 +315,54 @@ function createApp() {
       }
 
       // Handle prompts/list
-      if (method === 'prompts/list') {
-        const promptsResult = {
-          prompts: [
-            {
-              name: 'analyze-ledamot',
-              description: 'Analysera en riksdagsledamots aktivitet och röstningsbeteende',
-              arguments: [
-                {
-                  name: 'ledamot_id',
-                  description: 'Ledamotens ID från Riksdagen',
-                  required: true
-                }
-              ]
-            },
-            {
-              name: 'compare-parties',
-              description: 'Jämför två partiers aktivitet och statistik',
-              arguments: [
-                {
-                  name: 'parti1',
-                  description: 'Förkortning för första partiet (t.ex. S, M, SD)',
-                  required: true
-                },
-                {
-                  name: 'parti2',
-                  description: 'Förkortning för andra partiet',
-                  required: true
-                }
-              ]
-            },
-            {
-              name: 'search-documents',
-              description: 'Sök efter dokument i Riksdagen baserat på ämne eller text',
-              arguments: [
-                {
-                  name: 'query',
-                  description: 'Sökord eller fras',
-                  required: true
-                },
-                {
-                  name: 'document_type',
-                  description: 'Dokumenttyp (mot, prop, bet, etc.)',
-                  required: false
-                }
-              ]
-            },
-            {
-              name: 'analyze-voting',
-              description: 'Analysera en specifik votering och partiernas röstbeteende',
-              arguments: [
-                {
-                  name: 'votering_id',
-                  description: 'Votering ID från Riksdagen',
-                  required: true
-                }
-              ]
-            }
-          ]
-        };
+        if (method === 'prompts/list') {
+          const promptsResult = {
+            prompts: [
+              {
+                name: 'search-documents',
+                description: 'Sök dokument i Riksdagen med avancerade filter',
+                arguments: [
+                  { name: 'query', description: 'Sökord, titel eller fritext', required: false },
+                  { name: 'document_type', description: 'Dokumenttyp (prop, bet, mot, etc.)', required: false },
+                  { name: 'rm', description: 'Riksmöte (2023/24)', required: false }
+                ]
+              },
+              {
+                name: 'search-ledamoter',
+                description: 'Hitta ledamöter utifrån namn, parti eller område',
+                arguments: [
+                  { name: 'namn', description: 'Förnamn, efternamn eller sökfråga', required: false },
+                  { name: 'parti', description: 'Parti (S, M, SD)', required: false },
+                  { name: 'valkrets', description: 'Valkrets', required: false }
+                ]
+              },
+              {
+                name: 'search-voteringar',
+                description: 'Sök voteringar med beteckning, punkt eller gruppering',
+                arguments: [
+                  { name: 'rm', description: 'Riksmöte', required: false },
+                  { name: 'bet', description: 'Beteckning', required: false },
+                  { name: 'groupBy', description: 'Gruppera per parti, valkrets eller namn', required: false }
+                ]
+              },
+              {
+                name: 'get-calendar-events',
+                description: 'Hämtar händelser från kalendern (kammaren/utskott)',
+                arguments: [
+                  { name: 'from', description: 'Från datum (YYYY-MM-DD)', required: false },
+                  { name: 'tom', description: 'Till datum (YYYY-MM-DD)', required: false },
+                  { name: 'org', description: 'Organ (KU, FiU, etc.)', required: false }
+                ]
+              },
+              {
+                name: 'fetch-report',
+                description: 'Hämtar en rapport (rdlstat, könsstatistik, diarium)',
+                arguments: [
+                  { name: 'report', description: 'Identifierare (ledamotsstatistik, diarium etc.)', required: true }
+                ]
+              }
+            ]
+          };
 
         if (isJsonRpc) {
           return res.json({
@@ -448,58 +391,62 @@ function createApp() {
 
         // Return prompt template based on name
         const prompts: Record<string, any> = {
-          'analyze-ledamot': {
-            description: 'Analysera en riksdagsledamots aktivitet',
-            messages: [
-              {
-                role: 'user',
-                content: {
-                  type: 'text',
-                  text: `Analysera ledamot med ID {{ledamot_id}}. Inkludera:
-- Grundläggande information
-- Anföranden (antal och ämnen)
-- Röstningsbeteende
-- Jämförelse med partikollegor`
-                }
-              }
-            ]
-          },
-          'compare-parties': {
-            description: 'Jämför två partiers aktivitet',
-            messages: [
-              {
-                role: 'user',
-                content: {
-                  type: 'text',
-                  text: 'Jämför partierna {{parti1}} och {{parti2}} avseende aktivitet, dokument och röstningsbeteende'
-                }
-              }
-            ]
-          },
           'search-documents': {
-            description: 'Sök efter dokument i Riksdagen baserat på ämne eller text',
+            description: 'Sök dokument med titlar, beteckningar eller ämnesattribut',
             messages: [
               {
                 role: 'user',
                 content: {
                   type: 'text',
-                  text: `Sök efter dokument om {{query}}${promptName === 'search-documents' ? '{{#if document_type}} av typ {{document_type}}{{/if}}' : ''}. Använd search_dokument verktyget.`
+                  text: `Hitta dokument om {{query}}${promptName === 'search-documents' ? '{{#if document_type}} av typ {{document_type}}{{/if}}' : ''}. Använd search_dokument och returnera kort metadata.`
                 }
               }
             ]
           },
-          'analyze-voting': {
-            description: 'Analysera en specifik votering och partiernas röstbeteende',
+          'search-ledamoter': {
+            description: 'Sök ledamöter efter namn, parti eller valkrets',
             messages: [
               {
                 role: 'user',
                 content: {
                   type: 'text',
-                  text: `Analysera votering {{votering_id}}. Inkludera:
-- Voteringens ämne och kontext
-- Hur olika partier röstade
-- Avvikare från partilinjen
-- Resultat och betydelse`
+                  text: `Hitta ledamöter baserat på {{namn}}{{#if parti}} (parti {{parti}}){{/if}}${promptName === 'search-ledamoter' && '{{#if valkrets}} i {{valkrets}}{{/if}}' || ''}.`
+                }
+              }
+            ]
+          },
+          'search-voteringar': {
+            description: 'Sök voteringar, gärna grupperade per parti/valkrets',
+            messages: [
+              {
+                role: 'user',
+                content: {
+                  type: 'text',
+                  text: `Visa voteringar för {{rm}}{{#if bet}} ({{bet}}){{/if}}{{#if groupBy}} grupperade per {{groupBy}}{{/if}}.`
+                }
+              }
+            ]
+          },
+          'get-calendar-events': {
+            description: 'Hämtar kalenderhändelser för utskott eller kammaren',
+            messages: [
+              {
+                role: 'user',
+                content: {
+                  type: 'text',
+                  text: `Lista kalenderhändelser mellan {{from}} och {{tom}} för {{org || 'alla organ'}}.`
+                }
+              }
+            ]
+          },
+          'fetch-report': {
+            description: 'Hämtar en rapport (rdlstat, könsstatistik, diarium)',
+            messages: [
+              {
+                role: 'user',
+                content: {
+                  type: 'text',
+                  text: `Hämta rapporten {{report}} från Riksdagens öppna data och summera innehållet.`
                 }
               }
             ]
@@ -622,7 +569,7 @@ function createApp() {
   });
 
   // POST endpoint for sending MCP requests via SSE (with optional auth)
-  app.post('/sse', authenticateApiKey, async (req, res) => {
+  app.post('/sse', async (req, res) => {
     try {
       const { method, params } = req.body;
 
@@ -634,16 +581,16 @@ function createApp() {
       let result;
       switch (method) {
         case 'tools/list':
-          result = await mcpServer.request({ method: 'tools/list' }, ListToolsRequestSchema);
+          result = await callMCPHandler('tools/list');
           break;
         case 'tools/call':
-          result = await mcpServer.request({ method: 'tools/call', params }, CallToolRequestSchema);
+          result = await callMCPHandler('tools/call', params);
           break;
         case 'resources/list':
-          result = await mcpServer.request({ method: 'resources/list' }, ListResourcesRequestSchema);
+          result = await callMCPHandler('resources/list');
           break;
         case 'resources/read':
-          result = await mcpServer.request({ method: 'resources/read', params }, ReadResourceRequestSchema);
+          result = await callMCPHandler('resources/read', params);
           break;
         default:
           return res.status(400).json({ error: `Unknown method: ${method}` });
@@ -675,18 +622,13 @@ function createApp() {
  */
 async function main() {
   try {
-    // Initialize Supabase
-    logger.info('Initializing Supabase connection...');
-    initSupabase();
-
     // Create and start Express server
     const app = createApp();
 
-    app.listen(PORT, () => {
-      logger.info(`🚀 Riksdag-Regering MCP Server v2.0 started`);
+  app.listen(PORT, () => {
+      logger.info(`🚀 Riksdag-Regering MCP Server v2.1 started`);
       logger.info(`📡 HTTP Server listening on port ${PORT}`);
       logger.info(`🌍 Environment: ${NODE_ENV}`);
-      logger.info(`🔒 API Key authentication: ${API_KEY ? 'enabled (SSE only)' : 'disabled'}`);
       logger.info(`\nEndpoints:`);
       logger.info(`  GET  /health - Health check`);
       logger.info(`  POST /mcp - Unified MCP endpoint (NO AUTH, for ChatGPT)`);
