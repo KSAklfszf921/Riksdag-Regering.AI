@@ -90,73 +90,100 @@ npx tsx scripts/backfill_supabase.ts --entities=motioner
 npx tsx scripts/backfill_supabase.ts --entities=votering_ledamoter
 ```
 
-### Alternativ 3: Steg-för-steg Import
+### Alternativ 3: Individuella Skript (Rekommenderat för granulär kontroll)
 
-#### Steg 1: Grunddata (1-2 minuter)
+Kör varje entitet separat för att följa testrapportens ordning och få detaljerad statistik per steg.
 
-```bash
-npx tsx scripts/backfill_supabase.ts \
-  --entities=ledamoter,voteringar,fragor,interpellationer
-```
-
-**Förväntat resultat:**
-- ~300-350 ledamöter
-- ~100+ voteringar
-- ~50+ frågor
-- ~50+ interpellationer
-
-#### Steg 2: Motioner (1-2 minuter)
+#### Steg 1: Motioner (1–2 minuter)
 
 ```bash
-npx tsx scripts/backfill_supabase.ts --entities=motioner
+npx tsx scripts/backfill-motioner.ts --rm=2025/26
+# Med limit
+npx tsx scripts/backfill-motioner.ts --rm=2024/25 --limit=1000
 ```
 
-**Förväntat resultat:**
-- ~500 motioner från senaste riksmötet
-- Organ-kod extraherad för betänkanden
+- Riksmöte-specifik import
+- Automatisk utskottskods-extrahering från beteckning
+- Statistik per utskott efter import
 
-#### Steg 3: Propositioner (1-2 minuter)
+#### Steg 2: Propositioner (1–2 minuter)
 
 ```bash
-npx tsx scripts/backfill_supabase.ts --entities=propositioner
+npx tsx scripts/backfill-propositioner.ts --rm=2025/26
 ```
 
-**Förväntat resultat:**
-- ~75+ propositioner
-- Mappade till Riksdagsbehandling
+- Riksmöte-specifik import
+- Organ-kod extrahering och statistik
 
-#### Steg 4: Betänkanden (2-3 minuter)
+#### Steg 3: Betänkanden (2–3 minuter)
 
 ```bash
-npx tsx scripts/backfill_supabase.ts --entities=betankanden
+# Alla betänkanden för ett riksmöte
+npx tsx scripts/backfill-betankanden.ts --rm=2025/26
+
+# Specifikt utskott
+npx tsx scripts/backfill-betankanden.ts --rm=2025/26 --utskott=KU
 ```
 
-**Förväntat resultat:**
-- ~200-300 betänkanden
-- Utskottskoder extraherade (KU, FiU, UU, etc.)
+- Riksmöte-specifik import
+- Utskott-filter (--utskott=KU/FiU/UU/etc.)
+- Utskottskod-extrahering från beteckning ("2024/25:KU5" → "KU")
 
-#### Steg 5: Individuella röster (3-5 minuter)
+#### Steg 4: Individuella röster (3–5 minuter)
 
 ```bash
-npx tsx scripts/backfill_supabase.ts --entities=votering_ledamoter
+# För riksmöte
+npx tsx scripts/backfill-votering-ledamoter.ts --riksmote=2025/26
+
+# För specifik votering
+npx tsx scripts/backfill-votering-ledamoter.ts --votering-id=55D02CA6-1543-4CB5-822E-D3A5B44B49D9
 ```
 
-**Förväntat resultat:**
-- ~2,800+ individuella röster (100 voteringar × ~349 ledamöter)
-- Parti-aggregering tillgänglig
+- Batch-processing i chunkar om 1000 röster
+- Progress per votering och parti-statistik (Ja/Nej/Avstår/Frånvarande)
+- Automatisk fördröjning mellan API-anrop (100 ms)
+- ⚠️ Resurskrävande – uppskattat 3–5 min för 100 voteringar
 
-**⚠️ Notering:** Detta steg är resurskrävande - kör under lågtrafik-tid.
+#### Steg 5: Organ-kod population (<1 minut)
+
+```bash
+# Populera alla riksmöten
+npx tsx scripts/backfill-organ-codes.ts --all-riksmotes
+
+# Dry run (ingen ändring)
+npx tsx scripts/backfill-organ-codes.ts --all-riksmotes --dry-run
+
+# Specifikt riksmöte
+npx tsx scripts/backfill-organ-codes.ts --rm=2025/26
+```
+
+- Extraherar organ-kod från dok_id och beteckning
+- Känner igen 15+ svenska utskottskoder (KU, FiU, SkU, UU, SoU, JuU, CU, NU, KrU, UbU, AU, FöU, TU, BoU, SfU, MJU)
+- Dry-run mode för säker testning
+
+#### Steg 6: Validera
+
+```bash
+npx tsx scripts/validate-backfill.ts
+```
+
+**Förväntat resultat per steg:**
+- Motioner: ~500 poster per riksmöte, utskottsfördelning loggas
+- Propositioner: ~75 poster
+- Betänkanden: ~200–300 poster eller färre med utskottsfilter
+- Votering Ledamöter: ~2,800+ individuella röster för 100 voteringar
+- Organ-koder: majoriteten av dokument får utskottskod
 
 ### Estimerad Total Tid
 
 | Steg | Datamängd | Tid |
 |------|-----------|-----|
-| Grunddata | ~500-600 | 1-2 min |
-| Motioner | ~500 | 1-2 min |
-| Propositioner | ~75 | 1-2 min |
-| Betänkanden | ~200-300 | 2-3 min |
-| Votering Ledamöter | ~2,800 | 3-5 min |
-| **TOTALT** | **~4,000-5,000** | **~10 min** |
+| Motioner | ~500 | 1–2 min |
+| Propositioner | ~75 | 1–2 min |
+| Betänkanden | ~200–300 | 2–3 min |
+| Votering Ledamöter | ~2,800 | 3–5 min |
+| Organ-kod population | ~500–800 | <1 min |
+| **TOTALT** | **~4,000–5,000** | **~10 min** |
 
 ## Validering
 
