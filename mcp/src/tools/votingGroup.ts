@@ -16,7 +16,7 @@ export async function getVotingGroup(args: z.infer<typeof getVotingGroupSchema>)
     rm: args.rm,
     bet: args.bet,
     punkt: args.punkt,
-    grupperin: args.groupBy,
+    gruppering: args.groupBy,
     sz: limit,
   });
 
