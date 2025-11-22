@@ -91,13 +91,17 @@ export async function fetchG0vDocuments(
 }
 
 /**
- * Hämta alla tillgängliga dokument (VARNING: stor fil!)
+ * REMOVED: fetchAllG0vDocuments()
+ *
+ * Denna funktion togs bort i v2.2.0 för att förhindra potentiell DOS
+ * och för stora responses som kan orsaka timeout/memory issues.
+ *
+ * Använd istället:
+ * - fetchG0vDocuments() med specifik typ och limit parameter
+ * - searchG0vAllTypes() för sökning över flera typer
+ *
+ * Om du behöver hämta mycket data, använd paginering och batch-processing.
  */
-export async function fetchAllG0vDocuments(): Promise<G0vDocument[]> {
-  await rateLimiter.waitForToken();
-  const url = `${G0V_API_BASE}/items.json`;
-  return safeFetch(url);
-}
 
 /**
  * Hämta senast uppdaterade metadata

@@ -11,6 +11,13 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 import { ZodError } from 'zod';
 import { listResources, getResource } from '../resources/index.js';
 import {
+  validateResponseSize,
+  sanitizeToolResponse,
+  createSafeErrorResponse,
+  ResponseTooLargeError,
+} from '../utils/responseSafety.js';
+import { logger } from '../utils/logger.js';
+import {
   searchLedamoter,
   searchLedamoterSchema,
   searchDokument,
@@ -96,16 +103,17 @@ const TOOL_DEFINITIONS = [
   { name: 'get_data_dictionary', description: 'Visa dataset och fältbeskrivningar', inputSchema: getDataDictionarySchema },
 ];
 
-export function createMCPServer(logger?: any) {
+export function createMCPServer(externalLogger?: any) {
   const server = new Server(
     {
       name: 'riksdag-regering-mcp',
-      version: '2.1.0',
+      version: '2.2.0',
     },
     {
       capabilities: {
         tools: {},
         resources: {},
+        logging: {},
       },
     }
   );
@@ -120,13 +128,24 @@ export function createMCPServer(logger?: any) {
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const start = performance.now();
-    const def = TOOL_DEFINITIONS.find((tool) => tool.name === request.params.name);
+    const toolName = request.params.name;
+    const def = TOOL_DEFINITIONS.find((tool) => tool.name === toolName);
+
     if (!def) {
-      throw new Error(`Okänt verktyg: ${request.params.name}`);
+      const error = createSafeErrorResponse(
+        new Error(`Unknown tool: ${toolName}`),
+        toolName,
+        { availableTools: TOOL_DEFINITIONS.map((t) => t.name) }
+      );
+      throw error;
     }
 
     try {
+      // Parse and validate arguments
       const args = def.inputSchema.parse(request.params.arguments || {}) as any;
+
+      logger.info(`Executing tool: ${toolName}`, { args });
+
       let result: unknown;
       switch (def.name) {
         case 'search_ledamoter':
@@ -214,24 +233,76 @@ export function createMCPServer(logger?: any) {
           throw new Error(`Verktyget ${def.name} är inte implementerat.`);
       }
 
+      // Sanitize and validate response before returning
+      const sanitizedResult = sanitizeToolResponse(result, {
+        maxItems: 500,
+        truncateStrings: true,
+      });
+
+      // Log successful execution
       await logToolCall({
-        tool_name: def.name,
+        tool_name: toolName,
         status: 'success',
         duration_ms: performance.now() - start,
       });
 
-      return { content: [{ type: 'application/json', text: JSON.stringify(result, null, 2) }] };
+      logger.info(`Tool executed successfully: ${toolName}`, {
+        duration: performance.now() - start,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(sanitizedResult, null, 2),
+          },
+        ],
+      };
     } catch (error) {
-      if (error instanceof ZodError) {
-        throw new Error(`Ogiltiga argument för ${def.name}: ${error.message}`);
-      }
+      const duration = performance.now() - start;
+
+      // Log error
       await logToolCall({
-        tool_name: def.name,
+        tool_name: toolName,
         status: 'error',
-        duration_ms: performance.now() - start,
+        duration_ms: duration,
         error_message: (error as Error).message,
       });
-      throw error;
+
+      logger.error(`Tool execution failed: ${toolName}`, {
+        error: (error as Error).message,
+        duration,
+      });
+
+      // Create safe error response
+      if (error instanceof ZodError) {
+        const safeError = createSafeErrorResponse(
+          new Error(`Invalid arguments for ${toolName}`),
+          toolName,
+          {
+            validationErrors: error.errors.map((e) => ({
+              path: e.path.join('.'),
+              message: e.message,
+            })),
+          }
+        );
+        throw new Error(JSON.stringify(safeError));
+      }
+
+      if (error instanceof ResponseTooLargeError) {
+        const safeError = createSafeErrorResponse(error, toolName, {
+          actualSize: error.actualSize,
+          maxSize: error.maxSize,
+        });
+        throw new Error(JSON.stringify(safeError));
+      }
+
+      // Generic error
+      const safeError = createSafeErrorResponse(
+        error as Error,
+        toolName
+      );
+      throw new Error(JSON.stringify(safeError));
     }
   });
 

@@ -74,7 +74,7 @@ function createApp() {
     res.json({
       status: 'ok',
       service: 'riksdag-regering-mcp',
-      version: '2.1.0',
+      version: '2.2.0',
       timestamp: new Date().toISOString(),
       sync,
     });
