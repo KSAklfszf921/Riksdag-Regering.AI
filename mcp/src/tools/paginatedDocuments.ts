@@ -78,15 +78,22 @@ export async function fetchPaginatedDocuments(
       dokument_url_html: normalizeDocumentUrl(doc),
     }));
 
+    const totalPages = Math.ceil(result.hits / pageSize);
+
     return {
       documents: normalizedDocuments,
       pagination: {
         hits: result.hits,
         page: result.page,
+        totalPages,
+        pageSize,
         hasMore: result.hasMore,
         nextPage: result.hasMore ? result.page + 1 : null,
+        prevPage: result.page > 1 ? result.page - 1 : null,
+        showing: normalizedDocuments.length,
+        position: `Sida ${result.page} av ${totalPages}`,
       },
-      message: `Sida ${result.page} av ~${Math.ceil(result.hits / pageSize)} (${result.hits} totalt)`,
+      message: `Visar ${normalizedDocuments.length} dokument (sida ${result.page} av ${totalPages}, ${result.hits} totalt)`,
     };
   }
 }
@@ -153,15 +160,22 @@ export async function fetchPaginatedAnforanden(
       anforandetext: anf.anforandetext || anf.anforandetext_html || '',
     }));
 
+    const totalPages = Math.ceil(result.hits / pageSize);
+
     return {
       anforanden: enrichedAnforanden,
       pagination: {
         hits: result.hits,
         page: result.page,
+        totalPages,
+        pageSize,
         hasMore: result.hasMore,
         nextPage: result.hasMore ? result.page + 1 : null,
+        prevPage: result.page > 1 ? result.page - 1 : null,
+        showing: enrichedAnforanden.length,
+        position: `Sida ${result.page} av ${totalPages}`,
       },
-      message: `Sida ${result.page} (${result.hits} totalt)`,
+      message: `Visar ${enrichedAnforanden.length} anföranden (sida ${result.page} av ${totalPages}, ${result.hits} totalt)`,
     };
   }
 }

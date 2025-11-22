@@ -168,11 +168,11 @@ export async function searchDokument(args: z.infer<typeof searchDokumentSchema>)
 
 export const searchDokumentFulltextSchema = z.object({
   query: z.string().min(2).describe('Text att söka efter'),
-  limit: z.number().min(1).max(200).optional().default(20),
+  limit: z.number().min(1).max(200).optional().default(50).describe('Max antal resultat (ökad från 20 till 50)'),
 });
 
 export async function searchDokumentFulltext(args: z.infer<typeof searchDokumentFulltextSchema>) {
-  const limit = normalizeLimit(args.limit, 20);
+  const limit = normalizeLimit(args.limit, 50);
   const result = await fetchDokumentDirect({
     sok: args.query,
     sz: limit * 2, // Fetch extra to account for filtering out person pages
@@ -192,8 +192,11 @@ export async function searchDokumentFulltext(args: z.infer<typeof searchDokument
   }));
 
   return {
-    count: documentsOnly.length,
+    count: hits.length,
+    totalMatches: result.hits, // Total antal träffar i databasen
+    showing: hits.length,
     hits,
+    notice: result.hits > hits.length ? `Visar ${hits.length} av ${result.hits} träffar. Öka 'limit' parametern för fler resultat.` : undefined,
   };
 }
 

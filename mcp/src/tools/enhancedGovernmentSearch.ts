@@ -12,6 +12,39 @@ export const enhancedSearchSchema = z.object({
   limit: z.number().min(1).max(100).optional().default(20),
 });
 
+// Helper function to normalize titles for comparison
+function normalizeTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Helper function to find duplicates between Riksdagen and Regeringen
+function findDuplicates(riksdagenDocs: any[], regeringenDocs: any[]): Map<string, { riksdag: any, regering: any }> {
+  const duplicates = new Map();
+
+  for (const rdDoc of riksdagenDocs) {
+    const rdTitle = normalizeTitle(rdDoc.titel);
+    const rdDate = rdDoc.datum?.substring(0, 10); // YYYY-MM-DD
+
+    for (const rgDoc of regeringenDocs) {
+      const rgTitle = normalizeTitle(rgDoc.title);
+      const rgDate = rgDoc.published?.substring(0, 10);
+
+      // Check if titles are similar (at least 80% match) and dates are close
+      if (rdTitle && rgTitle && rdTitle.includes(rgTitle.substring(0, 20)) || rgTitle.includes(rdTitle.substring(0, 20))) {
+        if (rdDate === rgDate || Math.abs(new Date(rdDate).getTime() - new Date(rgDate).getTime()) < 7 * 24 * 60 * 60 * 1000) {
+          duplicates.set(rdDoc.dok_id, { riksdag: rdDoc, regering: rgDoc });
+        }
+      }
+    }
+  }
+
+  return duplicates;
+}
+
 export async function enhancedGovernmentSearch(args: z.infer<typeof enhancedSearchSchema>) {
   const limit = normalizeLimit(args.limit, 20);
 
@@ -28,15 +61,31 @@ export async function enhancedGovernmentSearch(args: z.infer<typeof enhancedSear
   // Filter out person pages (they don't have dok_id)
   const documentsOnly = documents.data.filter((doc) => doc.dok_id).slice(0, limit);
 
+  // Find duplicates between Riksdagen propositions and Regeringen propositions
+  const regeringenPropositioner = regeringen.propositioner || [];
+  const duplicates = findDuplicates(documentsOnly, regeringenPropositioner);
+
+  // Map documents and mark duplicates
+  const riksdagDokument = documentsOnly.map((doc) => {
+    const duplicate = duplicates.get(doc.dok_id);
+    return {
+      dok_id: doc.dok_id,
+      titel: doc.titel,
+      datum: doc.datum,
+      summary: doc.summary,
+      ...(duplicate ? {
+        duplicate: true,
+        primarySource: 'riksdagen',
+        alsoFoundIn: 'regeringen',
+        regeringenUrl: duplicate.regering.url,
+      } : {}),
+    };
+  });
+
   return {
     query: args.query,
     riksdagen: {
-      dokument: documentsOnly.map((doc) => ({
-        dok_id: doc.dok_id,
-        titel: doc.titel,
-        datum: doc.datum,
-        summary: doc.summary,
-      })),
+      dokument: riksdagDokument,
       anforanden: anforanden.data.map((item: any) => {
         // Ensure snippet is not empty by using avsnittsrubrik as fallback
         const text = stripHtml(item.anforandetext || item.anforandetext_html || '');
@@ -57,5 +106,11 @@ export async function enhancedGovernmentSearch(args: z.infer<typeof enhancedSear
       })),
     },
     regeringen,
+    deduplication: {
+      duplicatesFound: duplicates.size,
+      notice: duplicates.size > 0
+        ? `Hittade ${duplicates.size} dokument som finns i båda källorna. Dessa är markerade med 'duplicate: true' och visar vilken källa som är primär.`
+        : 'Inga dubbletter hittades mellan Riksdagen och Regeringen.',
+    },
   };
 }
