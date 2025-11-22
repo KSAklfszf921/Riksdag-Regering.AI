@@ -126,19 +126,106 @@ export const getBetankandenSchema = z.object({
   organ: z.string().optional(),
   limit: z.number().min(1).max(200).optional(),
 });
-export const getBetankanden = buildDokumentFetcher('bet');
+
+export async function getBetankanden(args: z.infer<typeof getBetankandenSchema>) {
+  const limit = normalizeLimit(args.limit, 50);
+
+  // Fetch more if organ filter is specified to account for client-side filtering
+  const fetchLimit = args.organ ? Math.min(limit * 3, 200) : limit;
+
+  const result = await fetchDokumentDirect({
+    doktyp: 'bet',
+    rm: args.rm,
+    organ: args.organ,
+    sz: fetchLimit,
+  });
+
+  let filteredData = result.data;
+
+  // Apply client-side filtering for organ to ensure exact match
+  if (args.organ) {
+    const organUpper = args.organ.toUpperCase();
+    filteredData = result.data.filter((doc) =>
+      doc.organ?.toUpperCase() === organUpper
+    );
+  }
+
+  // Apply limit after filtering
+  const limitedData = filteredData.slice(0, limit);
+
+  const dokument = limitedData.map((doc) => ({
+    dok_id: doc.dok_id,
+    titel: doc.titel,
+    datum: doc.datum,
+    rm: doc.rm,
+    organ: doc.organ,
+    summary: doc.summary,
+    url: doc.dokument_url_html ? `https:${doc.dokument_url_html}` : doc.relurl,
+  }));
+
+  return {
+    count: filteredData.length,
+    dokument,
+  };
+}
 
 export const getFragorSchema = z.object({
   rm: z.string().optional(),
   limit: z.number().min(1).max(200).optional(),
 });
-export const getFragor = buildDokumentFetcher('fr');
+
+export async function getFragor(args: z.infer<typeof getFragorSchema>) {
+  const limit = normalizeLimit(args.limit, 50);
+  const result = await fetchDokumentDirect({
+    doktyp: 'fr',
+    rm: args.rm,
+    sz: limit,
+  });
+
+  const dokument = result.data.map((doc) => ({
+    dok_id: doc.dok_id,
+    titel: doc.titel,
+    datum: doc.datum,
+    rm: doc.rm,
+    parti: doc.organ, // Note: For questions, 'organ' field contains the party of the asker
+    summary: doc.summary,
+    url: doc.dokument_url_html ? `https:${doc.dokument_url_html}` : doc.relurl,
+  }));
+
+  return {
+    count: result.hits,
+    dokument,
+  };
+}
 
 export const getInterpellationerSchema = z.object({
   rm: z.string().optional(),
   limit: z.number().min(1).max(200).optional(),
 });
-export const getInterpellationer = buildDokumentFetcher('ip');
+
+export async function getInterpellationer(args: z.infer<typeof getInterpellationerSchema>) {
+  const limit = normalizeLimit(args.limit, 50);
+  const result = await fetchDokumentDirect({
+    doktyp: 'ip',
+    rm: args.rm,
+    sz: limit,
+  });
+
+  const dokument = result.data.map((doc) => ({
+    dok_id: doc.dok_id,
+    titel: doc.titel,
+    datum: doc.datum,
+    rm: doc.rm,
+    parti: doc.organ, // Note: For interpellations, 'organ' field contains the party of the asker
+    summary: doc.summary,
+    url: doc.dokument_url_html ? `https:${doc.dokument_url_html}` : doc.relurl,
+  }));
+
+  return {
+    count: result.hits,
+    dokument,
+  };
+}
 
 export const getUtskottSchema = z.object({});
 

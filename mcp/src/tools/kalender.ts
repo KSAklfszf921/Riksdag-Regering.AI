@@ -12,27 +12,38 @@ export const getCalendarEventsSchema = z.object({
 });
 
 export async function getCalendarEvents(args: z.infer<typeof getCalendarEventsSchema>) {
-  const limit = normalizeLimit(args.limit, 200, 500);
-  const response = await fetchKalenderDirect({
-    from: args.from,
-    tom: args.tom,
-    akt: args.akt,
-    org: args.org,
-    sz: limit,
-    sort: args.sort,
-  });
+  try {
+    const limit = normalizeLimit(args.limit, 200, 500);
+    const response = await fetchKalenderDirect({
+      from: args.from,
+      tom: args.tom,
+      akt: args.akt,
+      org: args.org,
+      sz: limit,
+      sort: args.sort,
+    });
 
-  if ('raw' in response) {
+    if ('raw' in response) {
+      return {
+        count: 0,
+        events: [],
+        rawHtml: response.raw,
+        notice: 'Kalendern returnerade HTML. Ange andra filter eller överväg att tolka rawHtml.',
+      };
+    }
+
+    return {
+      count: response.hits,
+      events: response.data,
+    };
+  } catch (error) {
+    // Return a helpful error message instead of internal error
+    const errorMsg = error instanceof Error ? error.message : String(error);
     return {
       count: 0,
       events: [],
-      rawHtml: response.raw,
-      notice: 'Kalendern returnerade HTML. Ange andra filter eller överväg att tolka rawHtml.',
+      error: `Kunde inte hämta kalenderdata: ${errorMsg}. API:et kan ha returnerat ogiltig data eller vara tillfälligt otillgängligt.`,
+      notice: 'Riksdagens kalender-API kan ibland returnera felaktigt formaterad data. Försök med andra datum eller parametrar.',
     };
   }
-
-  return {
-    count: response.hits,
-    events: response.data,
-  };
 }

@@ -226,6 +226,51 @@ export async function searchG0vAllTypes(
 }
 
 /**
+ * Extract department name from document
+ */
+function extractDepartment(doc: G0vDocument): string {
+  const DEFAULT_SENDER = 'Okänt departement';
+
+  // First, try sender field
+  if (doc.sender && doc.sender.trim()) {
+    return doc.sender.trim();
+  }
+
+  // Then, try to extract from categories
+  if (doc.categories && Array.isArray(doc.categories)) {
+    for (const cat of doc.categories) {
+      const catLower = cat.toLowerCase();
+      // Check if category contains a department name
+      if (catLower.includes('departement')) {
+        return cat;
+      }
+      // Map known category codes to departments
+      if (catLower.includes('1286')) return 'Försvarsdepartementet';
+      if (catLower.includes('1285')) return 'Finansdepartementet';
+      if (catLower.includes('1284')) return 'Utbildningsdepartementet';
+      if (catLower.includes('1283')) return 'Justitiedepartementet';
+      if (catLower.includes('1282')) return 'Miljödepartementet';
+      if (catLower.includes('1281')) return 'Näringsdepartementet';
+      if (catLower.includes('1280')) return 'Socialdepartementet';
+    }
+  }
+
+  // Try to extract from URL
+  if (doc.url) {
+    const urlLower = doc.url.toLowerCase();
+    if (urlLower.includes('forsvarsdepartementet')) return 'Försvarsdepartementet';
+    if (urlLower.includes('finansdepartementet')) return 'Finansdepartementet';
+    if (urlLower.includes('utbildningsdepartementet')) return 'Utbildningsdepartementet';
+    if (urlLower.includes('justitiedepartementet')) return 'Justitiedepartementet';
+    if (urlLower.includes('miljodepartementet')) return 'Miljödepartementet';
+    if (urlLower.includes('naringsdepartementet')) return 'Näringsdepartementet';
+    if (urlLower.includes('socialdepartementet')) return 'Socialdepartementet';
+  }
+
+  return DEFAULT_SENDER;
+}
+
+/**
  * Analysera dokument per departement
  */
 export async function analyzeByDepartment(
@@ -261,11 +306,9 @@ export async function analyzeByDepartment(
     }
   > = {};
 
-  const DEFAULT_SENDER = 'Okänt departement';
-
   // Analyze press releases
   pressmeddelanden.forEach((doc) => {
-    const sender = doc.sender || DEFAULT_SENDER;
+    const sender = extractDepartment(doc);
     if (!departments[sender]) {
       departments[sender] = {
         count: 0,
@@ -280,7 +323,7 @@ export async function analyzeByDepartment(
 
   // Analyze propositions
   propositioner.forEach((doc) => {
-    const sender = doc.sender || DEFAULT_SENDER;
+    const sender = extractDepartment(doc);
     if (!departments[sender]) {
       departments[sender] = {
         count: 0,
@@ -295,7 +338,7 @@ export async function analyzeByDepartment(
 
   // Analyze speeches
   tal.forEach((doc) => {
-    const sender = doc.sender || DEFAULT_SENDER;
+    const sender = extractDepartment(doc);
     if (!departments[sender]) {
       departments[sender] = {
         count: 0,

@@ -27,37 +27,51 @@ export const getPressmeddelandeSchema = z.object({
 });
 
 export async function getPressmeddelande(args: z.infer<typeof getPressmeddelandeSchema>) {
-  const data = await fetchG0vDocuments('pressmeddelanden', { limit: 500, search: args.document_id });
-  const searchLower = args.document_id.toLowerCase();
+  try {
+    const data = await fetchG0vDocuments('pressmeddelanden', { limit: 500 });
+    const searchLower = args.document_id.toLowerCase();
 
-  const match = data.find((doc) => {
-    // Try to match exact URL if it's a full URL
-    if (searchLower.startsWith('http')) {
-      return doc.url?.toLowerCase() === searchLower;
-    }
-    // Try to match last segment of URL path
-    const docUrlSegment = doc.url?.split('/').filter(Boolean).pop();
-    if (docUrlSegment && docUrlSegment.toLowerCase() === searchLower.split('/').filter(Boolean).pop()) {
-      return true;
-    }
-    // Fallback to title includes
-    return doc.title?.toLowerCase().includes(searchLower);
-  });
+    const match = data.find((doc) => {
+      if (!doc || !doc.url) return false;
 
-  if (!match || !match.url) { // Ensure match.url is present
-    throw new Error(`Pressmeddelandet ${args.document_id} hittades inte via g0v.se`);
+      // Try to match exact URL if it's a full URL
+      if (searchLower.startsWith('http')) {
+        return doc.url.toLowerCase() === searchLower;
+      }
+
+      // Try to match last segment of URL path
+      const docUrlSegment = doc.url.split('/').filter(Boolean).pop();
+      const searchSegment = searchLower.split('/').filter(Boolean).pop();
+      if (docUrlSegment && searchSegment && docUrlSegment.toLowerCase() === searchSegment) {
+        return true;
+      }
+
+      // Try exact title match
+      if (doc.title && doc.title.toLowerCase() === searchLower) {
+        return true;
+      }
+
+      // Fallback to title includes
+      return doc.title && doc.title.toLowerCase().includes(searchLower);
+    });
+
+    if (!match || !match.url) {
+      throw new Error(`Pressmeddelandet "${args.document_id}" hittades inte via g0v.se. Prova med en mer specifik sökterm eller full URL.`);
+    }
+
+    const content = await fetchG0vDocumentContent(match.url);
+
+    return {
+      titel: match.title,
+      publicerad: match.published,
+      avsandare: match.sender,
+      url: match.url,
+      typ: match.type,
+      markdown: content,
+    };
+  } catch (error) {
+    throw new Error(`Kunde inte hämta pressmeddelande: ${error instanceof Error ? error.message : String(error)}`);
   }
-
-  const content = await fetchG0vDocumentContent(match.url);
-
-  return {
-    titel: match.title,
-    publicerad: match.published,
-    avsandare: match.sender,
-    url: match.url,
-    typ: match.type,
-    markdown: content,
-  };
 }
 
 export const getDokumentInnehallSchema = z.object({
@@ -93,37 +107,51 @@ export const summarizePressmeddelandeSchema = z.object({
 });
 
 export async function summarizePressmeddelande(args: z.infer<typeof summarizePressmeddelandeSchema>) {
-  const data = await fetchG0vDocuments('pressmeddelanden', { limit: 300, search: args.document_id });
-  const searchLower = args.document_id.toLowerCase();
+  try {
+    const data = await fetchG0vDocuments('pressmeddelanden', { limit: 500 });
+    const searchLower = args.document_id.toLowerCase();
 
-  const match = data.find((doc) => {
-    // Try to match exact URL if it's a full URL
-    if (searchLower.startsWith('http')) {
-      return doc.url?.toLowerCase() === searchLower;
-    }
-    // Try to match last segment of URL path
-    const docUrlSegment = doc.url?.split('/').filter(Boolean).pop();
-    if (docUrlSegment && docUrlSegment.toLowerCase() === searchLower.split('/').filter(Boolean).pop()) {
-      return true;
-    }
-    // Fallback to title includes
-    return doc.title?.toLowerCase().includes(searchLower);
-  });
+    const match = data.find((doc) => {
+      if (!doc || !doc.url) return false;
 
-  if (!match || !match.url) { // Ensure match.url is present
-    throw new Error(`Pressmeddelandet ${args.document_id} hittades inte.`);
+      // Try to match exact URL if it's a full URL
+      if (searchLower.startsWith('http')) {
+        return doc.url.toLowerCase() === searchLower;
+      }
+
+      // Try to match last segment of URL path
+      const docUrlSegment = doc.url.split('/').filter(Boolean).pop();
+      const searchSegment = searchLower.split('/').filter(Boolean).pop();
+      if (docUrlSegment && searchSegment && docUrlSegment.toLowerCase() === searchSegment) {
+        return true;
+      }
+
+      // Try exact title match
+      if (doc.title && doc.title.toLowerCase() === searchLower) {
+        return true;
+      }
+
+      // Fallback to title includes
+      return doc.title && doc.title.toLowerCase().includes(searchLower);
+    });
+
+    if (!match || !match.url) {
+      throw new Error(`Pressmeddelandet "${args.document_id}" hittades inte. Prova med en mer specifik sökterm eller full URL.`);
+    }
+
+    const markdown = await fetchG0vDocumentContent(match.url);
+    const clean = stripHtml(markdown || '');
+
+    return {
+      meta: {
+        titel: match.title,
+        publicerad: match.published,
+        url: match.url,
+        departement: match.sender,
+      },
+      summary: truncate(clean, args.max_length || 500),
+    };
+  } catch (error) {
+    throw new Error(`Kunde inte sammanfatta pressmeddelande: ${error instanceof Error ? error.message : String(error)}`);
   }
-
-  const markdown = await fetchG0vDocumentContent(match.url);
-  const clean = stripHtml(markdown || '');
-
-  return {
-    meta: {
-      titel: match.title,
-      publicerad: match.published,
-      url: match.url,
-      departement: match.sender,
-    },
-    summary: truncate(clean, args.max_length || 500),
-  };
 }

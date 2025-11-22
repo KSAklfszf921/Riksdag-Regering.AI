@@ -21,6 +21,15 @@ export const fetchPaginatedDocumentsSchema = z.object({
   maxPages: z.number().min(1).max(50).optional().default(10).describe('Max antal sidor att hämta om fetchAll=true'),
 });
 
+function normalizeDocumentUrl(doc: any): string {
+  if (doc.dokument_url_html) {
+    return doc.dokument_url_html.startsWith('http')
+      ? doc.dokument_url_html
+      : `https:${doc.dokument_url_html}`;
+  }
+  return doc.relurl || '';
+}
+
 export async function fetchPaginatedDocuments(
   args: z.infer<typeof fetchPaginatedDocumentsSchema>
 ) {
@@ -42,10 +51,16 @@ export async function fetchPaginatedDocuments(
       maxPages
     );
 
+    // Normalize URLs in documents
+    const normalizedDocuments = allDocuments.map((doc) => ({
+      ...doc,
+      dokument_url_html: normalizeDocumentUrl(doc),
+    }));
+
     return {
-      documents: allDocuments,
-      total: allDocuments.length,
-      message: `Hämtade ${allDocuments.length} dokument från ${maxPages} sidor`,
+      documents: normalizedDocuments,
+      total: normalizedDocuments.length,
+      message: `Hämtade ${normalizedDocuments.length} dokument från ${maxPages} sidor`,
     };
   } else {
     // Single page fetch
@@ -57,8 +72,14 @@ export async function fetchPaginatedDocuments(
       sz: pageSize,
     });
 
+    // Normalize URLs in documents
+    const normalizedDocuments = result.data.map((doc) => ({
+      ...doc,
+      dokument_url_html: normalizeDocumentUrl(doc),
+    }));
+
     return {
-      documents: result.data,
+      documents: normalizedDocuments,
       pagination: {
         hits: result.hits,
         page: result.page,
@@ -105,10 +126,16 @@ export async function fetchPaginatedAnforanden(
       maxPages
     );
 
+    // Ensure anforandetext is included
+    const enrichedAnforanden = allAnforanden.map((anf: any) => ({
+      ...anf,
+      anforandetext: anf.anforandetext || anf.anforandetext_html || '',
+    }));
+
     return {
-      anforanden: allAnforanden,
-      total: allAnforanden.length,
-      message: `Hämtade ${allAnforanden.length} anföranden`,
+      anforanden: enrichedAnforanden,
+      total: enrichedAnforanden.length,
+      message: `Hämtade ${enrichedAnforanden.length} anföranden`,
     };
   } else {
     const result = await fetchAnforandenDirect({
@@ -120,15 +147,21 @@ export async function fetchPaginatedAnforanden(
       sz: pageSize,
     });
 
+    // Ensure anforandetext is included
+    const enrichedAnforanden = result.data.map((anf: any) => ({
+      ...anf,
+      anforandetext: anf.anforandetext || anf.anforandetext_html || '',
+    }));
+
     return {
-      anforanden: result.data,
-    pagination: {
-      hits: result.hits,
-      page: result.page,
-      hasMore: result.hasMore,
-      nextPage: result.hasMore ? result.page + 1 : null,
-    },
-    message: `Sida ${result.page} (${result.hits} totalt)`,
+      anforanden: enrichedAnforanden,
+      pagination: {
+        hits: result.hits,
+        page: result.page,
+        hasMore: result.hasMore,
+        nextPage: result.hasMore ? result.page + 1 : null,
+      },
+      message: `Sida ${result.page} (${result.hits} totalt)`,
     };
   }
 }
