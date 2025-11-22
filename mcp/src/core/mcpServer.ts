@@ -65,6 +65,30 @@ import { getSyncStatus, getSyncStatusSchema } from '../tools/health.js';
 import { getDataDictionary, getDataDictionarySchema } from '../tools/metadata.js';
 import { getVotingGroup, getVotingGroupSchema } from '../tools/votingGroup.js';
 import { logToolCall } from '../utils/telemetry.js';
+import {
+  getG0vDocumentTypes,
+  getG0vDocumentTypesSchema
+} from '../tools/g0vTypes.js';
+import {
+  getG0vCategoryCodes,
+  getG0vCategoryCodesSchema
+} from '../tools/g0vCategoryCodes.js';
+import {
+  getG0vLatestUpdate,
+  getG0vLatestUpdateSchema
+} from '../tools/g0vLatestUpdate.js';
+import {
+  getG0vDocumentContent,
+  getG0vDocumentContentSchema
+} from '../tools/g0vDocumentContent.js';
+import {
+  analyzeG0vByDepartment,
+  analyzeG0vByDepartmentSchema
+} from '../tools/g0vDepartmentAnalysis.js';
+import {
+  getAllG0vDocuments,
+  getAllG0vDocumentsSchema
+} from '../tools/g0vAllDocuments.js';
 
 const TOOL_DEFINITIONS = [
   { name: 'search_ledamoter', description: 'Sök efter ledamöter i Riksdagen', inputSchema: searchLedamoterSchema },
@@ -73,6 +97,12 @@ const TOOL_DEFINITIONS = [
   { name: 'search_anforanden', description: 'Sök efter anföranden', inputSchema: searchAnforandenSchema },
   { name: 'search_voteringar', description: 'Sök efter voteringar och röster', inputSchema: searchVoteringarSchema },
   { name: 'search_regering', description: 'Sök i Regeringskansliets dokument via g0v.se', inputSchema: searchRegeringSchema },
+  { name: 'get_g0v_document_types', description: 'Hämta en lista över tillgängliga dokumenttyper från Regeringskansliet (via g0v.se)', inputSchema: getG0vDocumentTypesSchema },
+  { name: 'get_g0v_category_codes', description: 'Hämta en lista över kategorikoder från Regeringskansliet (via g0v.se)', inputSchema: getG0vCategoryCodesSchema },
+  { name: 'get_g0v_latest_update', description: 'Hämta information om senaste uppdateringen från Regeringskansliet (via g0v.se)', inputSchema: getG0vLatestUpdateSchema },
+  { name: 'get_g0v_document_content', description: 'Hämta innehållet i ett specifikt dokument från Regeringskansliet (via g0v.se) i Markdown-format', inputSchema: getG0vDocumentContentSchema },
+  { name: 'analyze_g0v_by_department', description: 'Analysera dokument från Regeringskansliet (via g0v.se) per departement', inputSchema: analyzeG0vByDepartmentSchema },
+  { name: 'get_all_g0v_documents', description: 'Hämta alla dokument från Regeringskansliet (via g0v.se) (Varning: Kan vara mycket stor datamängd)', inputSchema: getAllG0vDocumentsSchema },
   { name: 'get_dokument', description: 'Hämta detaljer om ett specifikt riksdagsdokument', inputSchema: getDokumentSchema },
   { name: 'get_ledamot', description: 'Hämta detaljer om en ledamot', inputSchema: getLedamotSchema },
   { name: 'get_motioner', description: 'Senaste motionerna', inputSchema: getMotionerSchema },
@@ -143,6 +173,24 @@ export function createMCPServer(logger?: any) {
           break;
         case 'search_regering':
           result = await searchRegering(args);
+          break;
+        case 'get_g0v_document_types':
+          result = await getG0vDocumentTypes();
+          break;
+        case 'get_g0v_category_codes':
+          result = await getG0vCategoryCodes();
+          break;
+        case 'get_g0v_latest_update':
+          result = await getG0vLatestUpdate();
+          break;
+        case 'get_g0v_document_content':
+          result = await getG0vDocumentContent(args);
+          break;
+        case 'analyze_g0v_by_department':
+          result = await analyzeG0vByDepartment(args);
+          break;
+        case 'get_all_g0v_documents':
+          result = await getAllG0vDocuments();
           break;
         case 'search_voteringar':
           result = await searchVoteringar(args);

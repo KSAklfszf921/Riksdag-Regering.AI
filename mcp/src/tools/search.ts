@@ -29,6 +29,8 @@ export const searchLedamoterSchema = z.object({
   parti: z.string().optional().describe('Parti (t.ex. S, M, SD, V, MP, C, L, KD)'),
   valkrets: z.string().optional().describe('Valkrets'),
   status: z.string().optional().describe('Status (tjänstgörande, tjänstledig, etc.)'),
+  intressent_id: z.string().optional().describe('Ledamots-ID'),
+  page: z.number().min(1).optional().default(1).describe('Sida för paginering'),
   limit: z.number().min(1).max(200).optional().default(50).describe('Max antal resultat'),
 });
 
@@ -42,6 +44,8 @@ export async function searchLedamoter(args: z.infer<typeof searchLedamoterSchema
     parti: args.parti,
     valkrets: args.valkrets,
     rdlstatus: args.status,
+    iid: args.intressent_id,
+    p: args.page,
     sz: limit,
   });
 
@@ -260,6 +264,8 @@ export const searchRegeringSchema = z.object({
     .describe(
       'Dokumenttyp (t.ex. pressmeddelanden, propositioner, sou, ds, dir, remisser, regeringsuppdrag, rapporter, tal, debattartiklar, uttalanden, artiklar)'
     ),
+  dateFrom: z.string().optional().describe('Från datum (YYYY-MM-DD)'),
+  dateTo: z.string().optional().describe('Till datum (YYYY-MM-DD)'),
   limit: z.number().min(1).max(200).optional().default(20),
 });
 
@@ -270,8 +276,8 @@ export async function searchRegering(args: z.infer<typeof searchRegeringSchema>)
     const documents = await fetchG0vDocuments(args.type as any, {
       limit,
       search: args.title,
-      dateFrom: undefined,
-      dateTo: undefined,
+      dateFrom: args.dateFrom,
+      dateTo: args.dateTo,
     });
 
     const filtered = args.departement
@@ -288,6 +294,8 @@ export async function searchRegering(args: z.infer<typeof searchRegeringSchema>)
   const results = await searchG0vAllTypes(args.title || '', {
     limit,
     types: ['pressmeddelanden', 'propositioner', 'sou', 'ds', 'rapporter', 'tal', 'remisser'],
+    dateFrom: args.dateFrom,
+    dateTo: args.dateTo,
   });
 
   if (args.departement) {

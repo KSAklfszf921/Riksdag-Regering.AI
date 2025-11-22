@@ -10,7 +10,7 @@ const G0V_BASE = 'https://g0v.se';
 const G0V_API_BASE = `${G0V_BASE}/api`;
 const rateLimiter = new RateLimiter(60, 60000); // 60 req/min
 
-const G0V_TYPE_ALIASES: Record<string, string> = {
+export const G0V_TYPE_ALIASES: Record<string, string> = {
   pressmeddelanden: 'pressmeddelanden',
   propositioner: 'rattsliga-dokument/proposition',
   proposition: 'rattsliga-dokument/proposition',
