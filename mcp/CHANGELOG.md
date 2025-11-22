@@ -241,7 +241,7 @@ const results = await searchRegering({
 #### Core funktionalitet
 - Initial release av Riksdag-Regering MCP Server
 - Komplett TypeScript implementation
-- Supabase integration för dataåtkomst
+- Tidig datalagringsintegration för dataåtkomst (numera borttagen)
 
 #### Sökverktyg (Search Tools)
 - `search_ledamoter` - Sök efter ledamöter med filter för namn, parti, valkrets och status
@@ -324,6 +324,6 @@ För buggfixar
 För säkerhetsuppdateringar
 
 ## 2.1.0 - 2025-11-21
-- 🔥 Tog bort samtliga Supabase-beroenden. Servern använder nu endast öppna API:er.
+- 🔥 Rensade bort samtliga externa databasberoenden. Servern använder nu endast öppna API:er.
 - ✨ Omskriven verktygslista (21 verktyg) baserad på direkta anrop.
 - 🧹 Dokumentation och exempel uppdaterade för den nya arkitekturen.

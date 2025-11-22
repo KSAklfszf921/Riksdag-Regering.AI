@@ -8,7 +8,7 @@ export async function getSyncStatus() {
     generated_at: new Date().toISOString(),
     sources: {
       riksdagen: 'data.riksdagen.se',
-      regeringen: 'g0v.se/api',
+      regeringen: 'g0v.se',
     },
   };
 }

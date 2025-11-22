@@ -6,26 +6,52 @@
 import { RateLimiter } from './rateLimiter.js';
 import { safeFetch, buildQueryString, PaginatedResponse } from './apiHelpers.js';
 
-const G0V_API_BASE = 'https://g0v.se/api';
+const G0V_BASE = 'https://g0v.se';
+const G0V_API_BASE = `${G0V_BASE}/api`;
 const rateLimiter = new RateLimiter(60, 60000); // 60 req/min
 
-/**
- * Dokumenttyper från g0v.se
- */
-export type G0vDocumentType =
-  | 'propositioner'
-  | 'sou'
-  | 'ds'
-  | 'dir'
-  | 'remisser'
-  | 'regeringsuppdrag'
-  | 'pressmeddelanden'
-  | 'tal'
-  | 'uttalanden'
-  | 'debattartiklar'
-  | 'overenskommelser'
-  | 'rattsakter'
-  | 'granskningar';
+export const G0V_TYPE_ALIASES: Record<string, string> = {
+  pressmeddelanden: 'pressmeddelanden',
+  propositioner: 'rattsliga-dokument/proposition',
+  proposition: 'rattsliga-dokument/proposition',
+  sou: 'rattsliga-dokument/statens-offentliga-utredningar',
+  'statens-offentliga-utredningar': 'rattsliga-dokument/statens-offentliga-utredningar',
+  ds: 'rattsliga-dokument/departementsserien-och-promemorior',
+  departementsserien: 'rattsliga-dokument/departementsserien-och-promemorior',
+  dir: 'rattsliga-dokument/kommittedirektiv',
+  kommittedirektiv: 'rattsliga-dokument/kommittedirektiv',
+  remisser: 'remisser',
+  regeringsuppdrag: 'regeringsuppdrag',
+  regeringsarenden: 'regeringsarenden',
+  rapporter: 'rapporter',
+  tal: 'tal',
+  uttalanden: 'uttalanden',
+  debattartiklar: 'debattartiklar',
+  overenskommelser: 'overenskommelser-och-avtal',
+  'overenskommelser-och-avtal': 'overenskommelser-och-avtal',
+  rattsakter: 'rattsliga-dokument/sveriges-internationella-overenskommelser',
+  'sveriges-internationella-overenskommelser': 'rattsliga-dokument/sveriges-internationella-overenskommelser',
+  granskningar: 'internationella-mr-granskningar-av-sverige',
+  'internationella-mr-granskningar-av-sverige': 'internationella-mr-granskningar-av-sverige',
+  faktapromemoria: 'faktapromemoria',
+  informationsmaterial: 'informationsmaterial',
+  artiklar: 'artiklar',
+  'ud-avrader': 'ud-avrader',
+  'kommenterade-dagordningar': 'kommenterade-dagordningar',
+  arendeforteckningar: 'arendeforteckningar',
+  sakrad: 'sakrad',
+  'strategier-for-internationellt-bistand': 'strategier-for-internationellt-bistand',
+  'forordningsmotiv': 'rattsliga-dokument/forordningsmotiv',
+  'lagradsremiss': 'rattsliga-dokument/lagradsremiss',
+  'skrivelse': 'rattsliga-dokument/skrivelse',
+};
+
+export type G0vDocumentType = keyof typeof G0V_TYPE_ALIASES | string;
+
+function resolveG0vType(type: G0vDocumentType): string {
+  const key = String(type).toLowerCase();
+  return G0V_TYPE_ALIASES[key] || String(type);
+}
 
 /**
  * G0v dokument-struktur
@@ -60,7 +86,8 @@ export async function fetchG0vDocuments(
 ): Promise<G0vDocument[]> {
   await rateLimiter.waitForToken();
 
-  const url = `${G0V_API_BASE}/${type}.json`;
+  const slug = resolveG0vType(type).replace(/^\/+/, '');
+  const url = `${G0V_BASE}/${slug}.json`;
   const data = await safeFetch(url);
 
   let documents: G0vDocument[] = data;
@@ -109,11 +136,17 @@ export async function fetchG0vDocuments(
 export async function fetchG0vLatestUpdate(): Promise<{
   updated: string;
   totalDocuments: number;
-  documentTypes: Record<string, number>;
+  codes: number;
 }> {
   await rateLimiter.waitForToken();
   const url = `${G0V_API_BASE}/latest_updated.json`;
-  return safeFetch(url);
+  const data = await safeFetch(url);
+
+  return {
+    updated: data.latest_updated || data.updated || '',
+    totalDocuments: data.items ?? data.totalDocuments ?? 0,
+    codes: data.codes ?? 0,
+  };
 }
 
 /**
@@ -164,7 +197,9 @@ export async function searchG0vAllTypes(
     'sou',
     'ds',
     'remisser',
+    'rapporter',
     'tal',
+    'debattartiklar',
   ];
 
   const results: Record<string, G0vDocument[]> = {};
@@ -192,6 +227,51 @@ export async function searchG0vAllTypes(
   });
 
   return results as Record<G0vDocumentType, G0vDocument[]>;
+}
+
+/**
+ * Extract department name from document
+ */
+function extractDepartment(doc: G0vDocument): string {
+  const DEFAULT_SENDER = 'Okänt departement';
+
+  // First, try sender field
+  if (doc.sender && doc.sender.trim()) {
+    return doc.sender.trim();
+  }
+
+  // Then, try to extract from categories
+  if (doc.categories && Array.isArray(doc.categories)) {
+    for (const cat of doc.categories) {
+      const catLower = cat.toLowerCase();
+      // Check if category contains a department name
+      if (catLower.includes('departement')) {
+        return cat;
+      }
+      // Map known category codes to departments
+      if (catLower.includes('1286')) return 'Försvarsdepartementet';
+      if (catLower.includes('1285')) return 'Finansdepartementet';
+      if (catLower.includes('1284')) return 'Utbildningsdepartementet';
+      if (catLower.includes('1283')) return 'Justitiedepartementet';
+      if (catLower.includes('1282')) return 'Miljödepartementet';
+      if (catLower.includes('1281')) return 'Näringsdepartementet';
+      if (catLower.includes('1280')) return 'Socialdepartementet';
+    }
+  }
+
+  // Try to extract from URL
+  if (doc.url) {
+    const urlLower = doc.url.toLowerCase();
+    if (urlLower.includes('forsvarsdepartementet')) return 'Försvarsdepartementet';
+    if (urlLower.includes('finansdepartementet')) return 'Finansdepartementet';
+    if (urlLower.includes('utbildningsdepartementet')) return 'Utbildningsdepartementet';
+    if (urlLower.includes('justitiedepartementet')) return 'Justitiedepartementet';
+    if (urlLower.includes('miljodepartementet')) return 'Miljödepartementet';
+    if (urlLower.includes('naringsdepartementet')) return 'Näringsdepartementet';
+    if (urlLower.includes('socialdepartementet')) return 'Socialdepartementet';
+  }
+
+  return DEFAULT_SENDER;
 }
 
 /**
@@ -232,50 +312,47 @@ export async function analyzeByDepartment(
 
   // Analyze press releases
   pressmeddelanden.forEach((doc) => {
-    if (doc.sender) {
-      if (!departments[doc.sender]) {
-        departments[doc.sender] = {
-          count: 0,
-          pressReleases: 0,
-          propositions: 0,
-          speeches: 0,
-        };
-      }
-      departments[doc.sender].count++;
-      departments[doc.sender].pressReleases++;
+    const sender = extractDepartment(doc);
+    if (!departments[sender]) {
+      departments[sender] = {
+        count: 0,
+        pressReleases: 0,
+        propositions: 0,
+        speeches: 0,
+      };
     }
+    departments[sender].count++;
+    departments[sender].pressReleases++;
   });
 
   // Analyze propositions
   propositioner.forEach((doc) => {
-    if (doc.sender) {
-      if (!departments[doc.sender]) {
-        departments[doc.sender] = {
-          count: 0,
-          pressReleases: 0,
-          propositions: 0,
-          speeches: 0,
-        };
-      }
-      departments[doc.sender].count++;
-      departments[doc.sender].propositions++;
+    const sender = extractDepartment(doc);
+    if (!departments[sender]) {
+      departments[sender] = {
+        count: 0,
+        pressReleases: 0,
+        propositions: 0,
+        speeches: 0,
+      };
     }
+    departments[sender].count++;
+    departments[sender].propositions++;
   });
 
   // Analyze speeches
   tal.forEach((doc) => {
-    if (doc.sender) {
-      if (!departments[doc.sender]) {
-        departments[doc.sender] = {
-          count: 0,
-          pressReleases: 0,
-          propositions: 0,
-          speeches: 0,
-        };
-      }
-      departments[doc.sender].count++;
-      departments[doc.sender].speeches++;
+    const sender = extractDepartment(doc);
+    if (!departments[sender]) {
+      departments[sender] = {
+        count: 0,
+        pressReleases: 0,
+        propositions: 0,
+        speeches: 0,
+      };
     }
+    departments[sender].count++;
+    departments[sender].speeches++;
   });
 
   const total =

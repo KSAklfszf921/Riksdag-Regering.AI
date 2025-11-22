@@ -1,6 +1,6 @@
 # Implementationsguide (uppdaterad)
 
-Den här guiden har uppdaterats i och med version 2.1 där alla Supabase-beroenden har tagits bort. MCP-servern hämtar nu data direkt från:
+Den här guiden beskriver den nuvarande, helt API-drivna architekturen. MCP-servern hämtar data direkt från:
 
 - `https://data.riksdagen.se` för dokument, ledamöter och anföranden
 - `https://g0v.se/api` för Regeringskansliets pressmeddelanden, propositioner och SOU
@@ -8,8 +8,8 @@ Den här guiden har uppdaterats i och med version 2.1 där alla Supabase-beroend
 ## Vad innebär förändringen?
 
 - Ingen databas behöver provisioneras. All data hämtas live vid varje anrop.
-- `.env` behöver inte längre innehålla Supabase URL eller nycklar.
-- Alla tidigare instruktioner om migrationer, policies och RLS är borttagna.
+- `.env` innehåller endast valfri `API_KEY` och ev. `RIKSDAG_USER_AGENT`.
+- Tidigare instruktioner om migrationer/policies är borttagna.
 - Logging sker via standardutmatning (stdout/stderr) och kan fångas upp av din hosting-plattform.
 
 ## Lokal utveckling

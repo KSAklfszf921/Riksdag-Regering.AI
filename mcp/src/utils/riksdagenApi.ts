@@ -199,7 +199,7 @@ export async function fetchVoteringGroup(params: {
   rm?: string;
   bet?: string;
   punkt?: string;
-  grupperin?: string;
+  gruppering?: string; // Corrected typo
   sz?: number;
   utformat?: string;
 }): Promise<PaginatedResponse<any>> {
@@ -209,7 +209,7 @@ export async function fetchVoteringGroup(params: {
     rm: params.rm,
     bet: params.bet,
     punkt: params.punkt,
-    gruppering: params.grupperin,
+    gruppering: params.gruppering, // Now correctly uses params.gruppering
     sz: params.sz || 500,
     utformat: params.utformat || 'json',
   });
@@ -227,9 +227,7 @@ export async function fetchKalenderDirect(params: {
   org?: string;
   sz?: number;
   sort?: string;
-}): Promise<
-  PaginatedResponse<any> | { data: any[]; hits: number; page: number; hasMore: boolean; raw: string }
-> {
+}): Promise<PaginatedResponse<any>> {
   await rateLimiter.waitForToken();
 
   const queryString = buildQueryString({
@@ -249,13 +247,7 @@ export async function fetchKalenderDirect(params: {
   try {
     const data = JSON.parse(text);
     return buildPaginatedResponse(data, 'kalender');
-  } catch {
-    return {
-      data: [],
-      hits: 0,
-      page: 1,
-      hasMore: false,
-      raw: text,
-    };
+  } catch (e) {
+    throw new Error(`Riksdagens kalender-API returnerade icke-JSON-innehåll. URL: ${url}. Fel: ${e instanceof Error ? e.message : String(e)}`);
   }
 }

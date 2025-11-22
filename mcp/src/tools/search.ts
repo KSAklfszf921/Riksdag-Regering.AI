@@ -13,10 +13,12 @@ import { normalizeLimit, stripHtml, truncate } from '../utils/helpers.js';
 import { fetchG0vDocuments, searchG0vAllTypes } from '../utils/g0vApi.js';
 
 function splitName(name?: string): { fnamn?: string; enamn?: string } {
-  if (!name) return {};
+  if (!name || !name.trim()) return {};
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) {
-    return { fnamn: parts[0], enamn: parts[0] };
+    // For single word searches, don't specify both - let API search broadly
+    // We'll filter client-side instead
+    return {};
   }
   return {
     fnamn: parts[0],
@@ -29,6 +31,8 @@ export const searchLedamoterSchema = z.object({
   parti: z.string().optional().describe('Parti (t.ex. S, M, SD, V, MP, C, L, KD)'),
   valkrets: z.string().optional().describe('Valkrets'),
   status: z.string().optional().describe('Status (tjänstgörande, tjänstledig, etc.)'),
+  intressent_id: z.string().optional().describe('Ledamots-ID'),
+  page: z.number().min(1).optional().default(1).describe('Sida för paginering'),
   limit: z.number().min(1).max(200).optional().default(50).describe('Max antal resultat'),
 });
 
@@ -36,16 +40,39 @@ export async function searchLedamoter(args: z.infer<typeof searchLedamoterSchema
   const limit = normalizeLimit(args.limit, 50);
   const { fnamn, enamn } = splitName(args.namn);
 
+  // For single word name search, fetch broader results and filter client-side
+  const searchTerm = args.namn?.trim().toLowerCase();
+  const isSingleWordSearch = searchTerm && !fnamn && !enamn;
+
   const response = await fetchLedamoterDirect({
-    fnamn,
-    enamn,
-    parti: args.parti,
-    valkrets: args.valkrets,
-    rdlstatus: args.status,
-    sz: limit,
+    fnamn: fnamn || undefined,
+    enamn: enamn || undefined,
+    parti: args.parti || undefined,
+    valkrets: args.valkrets || undefined,
+    rdlstatus: args.status || undefined,
+    iid: args.intressent_id || undefined,
+    p: args.page,
+    sz: isSingleWordSearch ? 200 : limit, // Fetch more for client-side filtering
   });
 
-  const ledamoter = response.data.map((person) => ({
+  let filteredData = response.data;
+
+  // Client-side filtering for single word name searches
+  if (isSingleWordSearch && searchTerm) {
+    filteredData = response.data.filter((person) => {
+      const fullName = `${person.tilltalsnamn} ${person.efternamn}`.toLowerCase();
+      const firstName = person.tilltalsnamn?.toLowerCase() || '';
+      const lastName = person.efternamn?.toLowerCase() || '';
+      return fullName.includes(searchTerm) ||
+             firstName.includes(searchTerm) ||
+             lastName.includes(searchTerm);
+    });
+  }
+
+  // Apply limit after filtering
+  const limitedData = filteredData.slice(0, limit);
+
+  const ledamoter = limitedData.map((person) => ({
     intressent_id: person.intressent_id,
     namn: `${person.tilltalsnamn} ${person.efternamn}`.trim(),
     parti: person.parti,
@@ -55,7 +82,7 @@ export async function searchLedamoter(args: z.infer<typeof searchLedamoterSchema
   }));
 
   return {
-    count: response.hits,
+    count: isSingleWordSearch ? filteredData.length : response.hits,
     ledamoter,
   };
 }
@@ -141,17 +168,20 @@ export async function searchDokument(args: z.infer<typeof searchDokumentSchema>)
 
 export const searchDokumentFulltextSchema = z.object({
   query: z.string().min(2).describe('Text att söka efter'),
-  limit: z.number().min(1).max(200).optional().default(20),
+  limit: z.number().min(1).max(200).optional().default(50).describe('Max antal resultat (ökad från 20 till 50)'),
 });
 
 export async function searchDokumentFulltext(args: z.infer<typeof searchDokumentFulltextSchema>) {
-  const limit = normalizeLimit(args.limit, 20);
+  const limit = normalizeLimit(args.limit, 50);
   const result = await fetchDokumentDirect({
     sok: args.query,
-    sz: limit,
+    sz: limit * 2, // Fetch extra to account for filtering out person pages
   });
 
-  const hits = result.data.map((doc) => ({
+  // Filter out person pages (they don't have dok_id)
+  const documentsOnly = result.data.filter((doc) => doc.dok_id);
+
+  const hits = documentsOnly.slice(0, limit).map((doc) => ({
     dok_id: doc.dok_id,
     titel: doc.titel,
     doktyp: doc.doktyp,
@@ -162,8 +192,11 @@ export async function searchDokumentFulltext(args: z.infer<typeof searchDokument
   }));
 
   return {
-    count: result.hits,
+    count: hits.length,
+    totalMatches: result.hits, // Total antal träffar i databasen
+    showing: hits.length,
     hits,
+    notice: result.hits > hits.length ? `Visar ${hits.length} av ${result.hits} träffar. Öka 'limit' parametern för fler resultat.` : undefined,
   };
 }
 
@@ -178,16 +211,43 @@ export const searchAnforandenSchema = z.object({
 
 export async function searchAnforanden(args: z.infer<typeof searchAnforandenSchema>) {
   const limit = normalizeLimit(args.limit, 50);
+
+  // Fetch more results if we need client-side filtering
+  const needsFiltering = !!args.talare || !!args.text;
+  const fetchSize = needsFiltering ? Math.min(limit * 3, 200) : limit;
+
   const response = await fetchAnforandenDirect({
-    talare: args.talare,
     parti: args.parti,
-    sok: args.text,
     rm: args.rm,
+    sok: args.text, // Try using API search
     p: 1,
-    sz: limit,
+    sz: fetchSize,
   });
 
-  const anforanden = response.data.map((item: any) => ({
+  let filteredData = response.data;
+
+  // Apply client-side filtering for talare if specified
+  if (args.talare) {
+    const talareLower = args.talare.toLowerCase();
+    filteredData = filteredData.filter((item: any) =>
+      item.talare?.toLowerCase().includes(talareLower)
+    );
+  }
+
+  // Apply client-side filtering for text if specified and sok didn't work
+  if (args.text && args.text.length > 2) {
+    const textLower = args.text.toLowerCase();
+    filteredData = filteredData.filter((item: any) => {
+      const anforandetext = stripHtml(item.anforandetext || '').toLowerCase();
+      const debatt = (item.avsnittsrubrik || '').toLowerCase();
+      return anforandetext.includes(textLower) || debatt.includes(textLower);
+    });
+  }
+
+  // Apply limit after filtering
+  const limitedData = filteredData.slice(0, limit);
+
+  const anforanden = limitedData.map((item: any) => ({
     anforande_id: item.anforande_id,
     talare: item.talare,
     parti: item.parti,
@@ -197,9 +257,13 @@ export async function searchAnforanden(args: z.infer<typeof searchAnforandenSche
     debatt: item.avsnittsrubrik,
   }));
 
+  // Check if any anföranden have empty text
+  const hasEmptyText = anforanden.some(a => !a.anforandetext || a.anforandetext.trim() === '');
+
   return {
-    count: response.hits,
+    count: filteredData.length, // Return actual filtered count
     anforanden,
+    notice: hasEmptyText ? 'OBS: Vissa eller alla anföranden kan ha tomt textfält. Detta är en begränsning i Riksdagens API som inte alltid returnerar fulltext för anföranden. Använd anforande_id och debatt-namn för att identifiera anföranden.' : undefined,
   };
 }
 
@@ -232,13 +296,49 @@ export async function searchVoteringar(args: z.infer<typeof searchVoteringarSche
     sz: limit,
   });
 
+  // If groupBy is specified, aggregate the results
+  if (args.groupBy && response.data.length > 0) {
+    const grouped: Record<string, any> = {};
+
+    response.data.forEach((item: any) => {
+      const key = item[args.groupBy!] || 'Okänt';
+      if (!grouped[key]) {
+        grouped[key] = {
+          [args.groupBy!]: key,
+          ja: 0,
+          nej: 0,
+          avstar: 0,
+          franvarande: 0,
+          total: 0,
+        };
+      }
+
+      const rost = (item.rost || '').toLowerCase();
+      if (rost === 'ja') grouped[key].ja++;
+      else if (rost === 'nej') grouped[key].nej++;
+      else if (rost === 'avstår') grouped[key].avstar++;
+      else if (rost === 'frånvarande') grouped[key].franvarande++;
+
+      grouped[key].total++;
+    });
+
+    const groupedResults = Object.values(grouped);
+
+    return {
+      count: groupedResults.length,
+      groupBy: args.groupBy,
+      voteringar: groupedResults,
+    };
+  }
+
+  // Otherwise return individual votes
   const voteringar = response.data.map((item: any) => ({
     votering_id: item.votering_id || item.id,
     rm: item.rm,
     beteckning: item.beteckning,
     datum: item.systemdatum || item.datum,
     parti: item.parti,
-    valkrets: item.valkrets || item.valkrets,
+    valkrets: item.valkrets,
     namn: item.namn,
     rost: item.rost,
     avser: item.avser,
@@ -255,53 +355,133 @@ export const searchRegeringSchema = z.object({
   title: z.string().optional().describe('Titel att söka efter'),
   departement: z.string().optional().describe('Departement'),
   type: z
-    .enum(['pressmeddelanden', 'propositioner', 'sou', 'tal', 'remisser'])
+    .string()
     .optional()
-    .describe('Dokumenttyp'),
-  limit: z.number().min(1).max(200).optional().default(20),
+    .describe(
+      'Dokumenttyp (t.ex. pressmeddelanden, propositioner, sou, ds, dir, remisser, regeringsuppdrag, rapporter, tal, debattartiklar, uttalanden, artiklar)'
+    ),
+  dateFrom: z.string().optional().describe('Från datum (YYYY-MM-DD)'),
+  dateTo: z.string().optional().describe('Till datum (YYYY-MM-DD)'),
+  limit: z.number().min(1).max(200).optional().default(10).describe('Max antal resultat (default: 10 för att minska response-storlek)'),
 });
 
+function generateDocumentId(doc: any): string {
+  if (doc.url) {
+    // Extract the last part of the URL as ID
+    const urlParts = doc.url.split('/').filter(Boolean);
+    return urlParts[urlParts.length - 1] || `doc-${doc.published || 'unknown'}`;
+  }
+  // Fallback: create ID from title and date
+  const titleSlug = (doc.title || 'untitled')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .substring(0, 50);
+  return `${titleSlug}-${doc.published || 'unknown'}`;
+}
+
+function matchesDepartement(doc: any, departementQuery: string): boolean {
+  const query = departementQuery.toLowerCase();
+
+  // Check sender field
+  if (doc.sender && doc.sender.toLowerCase().includes(query)) {
+    return true;
+  }
+
+  // Check categories array
+  if (doc.categories && Array.isArray(doc.categories)) {
+    for (const cat of doc.categories) {
+      if (cat.toLowerCase().includes(query)) {
+        return true;
+      }
+    }
+  }
+
+  // Check if query is a department code (e.g., "1286" for Försvarsdepartementet)
+  // Common department codes mapping
+  const deptCodeMap: Record<string, string[]> = {
+    '1286': ['försvarsdepartementet', 'försvars'],
+    '1285': ['finansdepartementet', 'finans'],
+    '1284': ['utbildningsdepartementet', 'utbildnings'],
+    '1283': ['justitiedepartementet', 'justifie'],
+    '1282': ['miljödepartementet', 'miljö'],
+    '1281': ['näringsdepartementet', 'närings'],
+    '1280': ['socialdepartementet', 'social'],
+  };
+
+  if (deptCodeMap[query]) {
+    const deptNames = deptCodeMap[query];
+    const senderLower = (doc.sender || '').toLowerCase();
+    return deptNames.some((name) => senderLower.includes(name));
+  }
+
+  return false;
+}
+
+/**
+ * Create a compact summary of a G0vDocument
+ */
+function summarizeDocument(doc: any) {
+  return {
+    id: generateDocumentId(doc),
+    title: doc.title,
+    published: doc.published,
+    url: doc.url,
+    sender: doc.sender,
+    type: doc.type,
+  };
+}
+
 export async function searchRegering(args: z.infer<typeof searchRegeringSchema>) {
-  const limit = normalizeLimit(args.limit, 20);
+  const limit = normalizeLimit(args.limit, 10); // Reduced default from 20 to 10
 
   if (args.type) {
     const documents = await fetchG0vDocuments(args.type as any, {
-      limit,
+      limit: args.departement ? limit * 3 : limit, // Fetch more if filtering
       search: args.title,
-      dateFrom: undefined,
-      dateTo: undefined,
+      dateFrom: args.dateFrom,
+      dateTo: args.dateTo,
     });
 
     const filtered = args.departement
-      ? documents.filter((doc) => (doc.sender || '').toLowerCase().includes(args.departement!.toLowerCase()))
+      ? documents.filter((doc) => matchesDepartement(doc, args.departement!))
       : documents;
+
+    // Return only essential fields
+    const summaries = filtered.slice(0, limit).map(summarizeDocument);
 
     return {
       type: args.type,
-      count: filtered.length,
-      documents: filtered,
+      count: summaries.length,
+      documents: summaries,
     };
   }
 
   const results = await searchG0vAllTypes(args.title || '', {
     limit,
-    types: ['pressmeddelanden', 'propositioner', 'sou', 'tal'],
+    types: ['pressmeddelanden', 'propositioner', 'sou', 'ds', 'rapporter', 'tal', 'remisser'],
+    dateFrom: args.dateFrom,
+    dateTo: args.dateTo,
   });
 
-  if (args.departement) {
-    Object.keys(results).forEach((key) => {
-      results[key as keyof typeof results] = results[key as keyof typeof results].filter((doc) =>
-        (doc.sender || '').toLowerCase().includes(args.departement!.toLowerCase())
-      );
-    });
-  }
+  // Apply department filtering and create summaries
+  const processedResults: any = {};
+  Object.keys(results).forEach((key) => {
+    let docs = results[key as keyof typeof results];
+
+    if (args.departement) {
+      docs = docs.filter((doc) => matchesDepartement(doc, args.departement!));
+    }
+
+    // Return only essential fields
+    processedResults[key] = docs.map(summarizeDocument);
+  });
 
   const totals = Object.fromEntries(
-    Object.entries(results).map(([key, docs]) => [key, docs.length])
+    Object.entries(processedResults).map(([key, docs]) => [key, (docs as any[]).length])
   );
 
   return {
     totals,
-    results,
+    results: processedResults,
   };
 }

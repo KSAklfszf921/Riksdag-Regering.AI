@@ -1,6 +1,6 @@
 # Deployment Guide (v2.1)
 
-Denna version kräver endast Node.js 20+ – ingen Supabase-databas behövs längre. All data hämtas direkt från Riksdagens öppna API samt g0v.se.
+Denna version kräver endast Node.js 20+. All data hämtas direkt från Riksdagens öppna API samt g0v.se.
 
 ## Render.com
 

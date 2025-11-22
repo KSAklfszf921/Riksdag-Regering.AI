@@ -182,7 +182,7 @@ function createApp() {
   app.get('/mcp', (req, res) => {
     res.json({
       service: 'riksdag-regering-mcp',
-      version: '2.0.0',
+      version: '2.1.0',
       description: 'MCP Server för Riksdagen och Regeringskansliet',
       status: 'operational',
       usage: {
@@ -279,8 +279,8 @@ function createApp() {
           },
           serverInfo: {
             name: 'riksdag-regering-mcp',
-            version: '2.0.0',
-            description: 'MCP Server för Riksdagen och Regeringskansliet med 27 verktyg och 5 resurser'
+            version: '2.1.0',
+            description: 'MCP Server för Riksdagen och Regeringskansliet med öppna API-verktyg'
           },
         };
 

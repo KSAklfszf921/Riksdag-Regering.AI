@@ -64,27 +64,44 @@ export async function fetchReport(args: z.infer<typeof reportSchema>) {
   }
 
   let data: unknown;
+  let summary: string;
+
   if (entry.format === 'json') {
     data = await safeFetch(url.toString());
+    summary = 'JSON data received';
   } else {
     const response = await fetch(url.toString(), { headers: { Accept: 'text/html' } });
-    data = await response.text();
+    const fullText = await response.text();
+
+    // Limit HTML content to prevent large responses
+    const maxChars = 500;
+    if (fullText.length > maxChars) {
+      data = fullText.substring(0, maxChars) + '...\n[Content truncated - visit URL for full report]';
+      summary = `HTML report truncated (${fullText.length} chars total, showing first ${maxChars})`;
+    } else {
+      data = fullText;
+      summary = `HTML report (${fullText.length} chars)`;
+    }
   }
 
   return {
     report: args.report,
     url: url.toString(),
+    summary,
     data,
+    notice: entry.format === 'text'
+      ? 'HTML reports are truncated for MCP efficiency. Visit the URL for the complete report.'
+      : undefined,
   };
 }
 
 export function listReports() {
   return [
-    { id: 'ledamotsstatistik', title: 'Ledamotsstatistik (rdlstat)', description: 'Statistik per ledamot med uppdrag och parti.' },
-    { id: 'kontaktutskott', title: 'Kontaktuppgifter till utskott', description: 'Kontaktinfo för utskottsledamöter.' },
-    { id: 'aldersstatistik', title: 'Åldersstatistik', description: 'Åldersfördelning bland ledamöter (HTML-rapport).' },
-    { id: 'konstatsstatistik', title: 'Könsstatistik', description: 'Könsfördelning via specialrapport.' },
-    { id: 'mandatperiod', title: 'Mandatperioder', description: 'Lista över mandatperioder och tillhörande ledamöter.' },
-    { id: 'diarium', title: 'Diarium', description: 'Länkar till årliga diarium-dataset.' },
+    { id: 'ledamotsstatistik', title: 'Ledamotsstatistik (rdlstat)', description: 'Statistik per ledamot med uppdrag och parti (JSON).' },
+    { id: 'kontaktutskott', title: 'Kontaktuppgifter till utskott', description: 'Kontaktinfo för utskottsledamöter (HTML, truncated preview).' },
+    { id: 'aldersstatistik', title: 'Åldersstatistik', description: 'Åldersfördelning bland ledamöter (HTML, truncated preview).' },
+    { id: 'konstatsstatistik', title: 'Könsstatistik', description: 'Könsfördelning via specialrapport (HTML, truncated preview).' },
+    { id: 'mandatperiod', title: 'Mandatperioder', description: 'Lista över mandatperioder och tillhörande ledamöter (HTML, truncated preview).' },
+    { id: 'diarium', title: 'Diarium', description: 'Länkar till årliga diarium-dataset (HTML, truncated preview).' },
   ];
 }

@@ -4,6 +4,8 @@ import { fetchLedamoterDirect, fetchDokumentDirect } from '../utils/riksdagenApi
 import { fetchG0vDocuments } from '../utils/g0vApi.js';
 import { DATA_DICTIONARY } from '../data/dictionary.js';
 import { WORKFLOW_GUIDE } from '../data/workflow.js';
+import { loadToolGuide } from '../data/toolGuide.js';
+import { RIKSMOTEN } from '../data/riksmoten.js';
 
 async function loadLedamoterSample() {
   const response = await fetchLedamoterDirect({ sz: 400 });
@@ -42,9 +44,15 @@ export async function listResources() {
       mimeType: 'application/json',
     },
     {
+      uri: 'riksdagen://riksmoten',
+      name: 'Riksmöten',
+      description: 'Lista över koder för riksmöten/år',
+      mimeType: 'application/json',
+    },
+    {
       uri: 'regeringen://departement',
       name: 'Regeringens departement',
-      description: 'Departementsaktivitet baserat på pressmeddelanden och propositioner (g0v.se)',
+      description: 'Departementsaktivitet baserat på pressmeddelanden och propositioner (via g0v.se)',
       mimeType: 'application/json',
     },
     {
@@ -64,6 +72,12 @@ export async function listResources() {
       name: 'Processguide',
       description: 'Steg-för-steg hur lagstiftningsprocessen fungerar',
       mimeType: 'application/json',
+    },
+    {
+      uri: 'docs://tool-guide',
+      name: 'Verktygsguide',
+      description: 'En detaljerad guide för hur man använder MCP-serverns verktyg',
+      mimeType: 'text/markdown',
     },
     {
       uri: 'docs://readme',
@@ -128,6 +142,14 @@ export async function getResource(uri: string) {
       };
     }
 
+    case 'riksdagen://riksmoten': {
+      return {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(RIKSMOTEN, null, 2),
+      };
+    }
+
     case 'regeringen://departement': {
       const press = await fetchG0vDocuments('pressmeddelanden', { limit: 500 });
       const prop = await fetchG0vDocuments('propositioner', { limit: 500 });
@@ -177,6 +199,15 @@ export async function getResource(uri: string) {
         uri,
         mimeType: 'application/json',
         text: JSON.stringify(WORKFLOW_GUIDE, null, 2),
+      };
+    }
+
+    case 'docs://tool-guide': {
+      const toolGuideContent = await loadToolGuide(); // Load from file
+      return {
+        uri,
+        mimeType: 'text/markdown',
+        text: toolGuideContent,
       };
     }
 
